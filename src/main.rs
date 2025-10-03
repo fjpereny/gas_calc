@@ -18,6 +18,7 @@ use crate::units::{Units, PrintUnit};
 
 pub struct App {
     pub pressure_modal_visible: bool,
+    pub temperature_modal_visible: bool,
     pub aga8_cur_state: Detail,
     pub gerg_cur_state: Gerg2008,
     pub aga8_inlet_state: Detail,
@@ -37,6 +38,7 @@ impl Default for App {
     fn default() -> Self {
         App { 
             pressure_modal_visible: false,
+            temperature_modal_visible: false,
             aga8_cur_state: Detail::new(),
             gerg_cur_state: Gerg2008::new(), 
             aga8_inlet_state: Detail::new(),
@@ -62,6 +64,10 @@ fn main() -> std::io::Result<()> {
     app.gas_comp = get_gas_comp(gas::Gas::Air);
     app.aga8_cur_state.set_composition(&app.gas_comp);
     app.gerg_cur_state.set_composition(&app.gas_comp);
+    app.aga8_inlet_state.set_composition(&app.gas_comp);
+    app.gerg_inlet_state.set_composition(&app.gas_comp);
+    app.aga8_outlet_state.set_composition(&app.gas_comp);
+    app.gerg_outlet_state.set_composition(&app.gas_comp);
     app.aga8_cur_state.p = 100.0;
     app.gerg_cur_state.p = 100.0;
     app.aga8_cur_state.t = 273.15;
@@ -159,11 +165,19 @@ fn draw(frame: &mut Frame, app: &mut App) {
     }
         
     
-    frame.render_widget(Block::bordered().title("Calculations (set inlet and outlet conditions to calculate)"), calc_area);
+    frame.render_widget(
+        Block::bordered()
+        .title("Calculations (set inlet and outlet conditions to calculate)")
+        .style(Color::Red), calc_area
+    );
 
-    if app.pressure_modal_visible { // Replace with your modal visibility condition
+    if app.pressure_modal_visible { 
         app.input_modal_active = true;
         pressure_modal(app, frame, main_area);
+    }
+    if app.temperature_modal_visible { 
+        app.input_modal_active = true;
+        temperature_modal(app, frame, main_area);
     }
 }
 
@@ -172,25 +186,30 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         match event::read()? {
             Event::Key(key) => match key.code {
                 KeyCode::Enter => {
-                    app.input_modal_active = false;
-                    app.pressure_modal_visible = false;
-
                     let input = app.input_text.lines()[0].trim();
                     let parse = input.parse::<f64>();
-                    match parse {
-                        Ok(val) => {
+                    if parse.is_ok() {
+                        let val = parse.unwrap();
+                        if app.pressure_modal_visible {
                             set_cur_pressure(val, app);
+                        } else if app.temperature_modal_visible {
+                            set_cur_temperature(val, app);
                         }
-                        _ => {},
                     }
-
+                    app.input_modal_active = false;
+                    app.temperature_modal_visible = false;
+                    app.pressure_modal_visible = false;
                     app.input_text = TextArea::default();
                 },
                 KeyCode::Esc => {
                     app.input_modal_active = false;
                     app.pressure_modal_visible = false;
+                    app.temperature_modal_visible = false;
                     app.input_text = TextArea::default();
                 },
+                KeyCode::Backspace => {
+                    app.input_text.delete_char();
+                }
                 _ =>{
                         let c = key.code.as_char();
                         if c.is_some() {
@@ -206,6 +225,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
             Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Char('q') => return Ok(true),
                 KeyCode::Char('p') => app.pressure_modal_visible = !app.pressure_modal_visible,
+                KeyCode::Char('t') => app.temperature_modal_visible = !app.temperature_modal_visible,
                 KeyCode::Char('i') => set_inlet_conditions(app),
                 KeyCode::Char('o') => set_outlet_conditions(app),
                 KeyCode::Char('m') => app.use_gerg2008 = ! app.use_gerg2008,
@@ -239,7 +259,6 @@ fn popup_area(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
     .split(popup_layout[1])[1]
 }
 
-
 fn pressure_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
     let modal_width_percent = 60;
     let modal_height_percent = 20;
@@ -249,7 +268,7 @@ fn pressure_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
     frame.render_widget(Clear, modal_area);
 
     let modal_block = Block::new()
-    .title("Settings")
+    .title("Current State Pressure")
     .borders(Borders::ALL)
     .style(Style::new().bg(Color::LightBlue));
 
@@ -275,16 +294,40 @@ fn set_cur_pressure(pressure: f64, app: &mut App) {
     recalculate(app);
 }
 
-fn set_pressure(app: &mut App, inlet: bool) {
-    if inlet {
-        app.aga8_inlet_state.p = units::set_pressure(app.aga8_cur_state.p, app.units.pressure);
-        app.gerg_inlet_state.p = units::set_pressure(app.gerg_cur_state.p, app.units.pressure);
-        recalculate(app);
-    } else {
-        app.aga8_outlet_state.p = units::set_pressure(app.aga8_cur_state.p, app.units.pressure);
-        app.gerg_outlet_state.p = units::set_pressure(app.gerg_cur_state.p, app.units.pressure);
-        recalculate(app);
-    }
+fn set_pressure(app: &mut App, state: GasState) {
+    match state {
+        GasState::Inlet => {
+            app.aga8_inlet_state.p = units::set_pressure(app.aga8_cur_state.p, app.units.pressure);
+            app.gerg_inlet_state.p = units::set_pressure(app.gerg_cur_state.p, app.units.pressure);
+            recalculate(app);
+        }
+        GasState::Outlet => {
+            app.aga8_outlet_state.p = units::set_pressure(app.aga8_cur_state.p, app.units.pressure);
+            app.gerg_outlet_state.p = units::set_pressure(app.gerg_cur_state.p, app.units.pressure);
+            recalculate(app);
+        }
+        _ => {}
+    } 
+}
+
+fn temperature_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
+    let modal_width_percent = 60;
+    let modal_height_percent = 20;
+    let modal_area = popup_area(main_area, modal_width_percent, modal_height_percent);
+
+    // Clear the background behind the modal
+    frame.render_widget(Clear, modal_area);
+
+    let modal_block = Block::new()
+    .title("Current State Temperature")
+    .borders(Borders::ALL)
+    .style(Style::new().bg(Color::LightBlue));
+
+    let modal_content = Paragraph::new(format!("Enter temperature {}\n{}", app.units.temp.print_unit(), app.input_text.lines()[0]))
+    .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
+
+    frame.render_widget(modal_block, modal_area);
+    frame.render_widget(modal_content, modal_area);
 }
 
 fn get_temperature(app: &mut App) -> f64 {
@@ -295,14 +338,28 @@ fn get_temperature(app: &mut App) -> f64 {
     }
 }
 
-fn set_temperature(app: &mut App, inlet: bool) {
-    if inlet {
-        app.aga8_inlet_state.t = units::set_temperature(app.aga8_cur_state.t, app.units.temp);
-        app.gerg_inlet_state.t = units::set_temperature(app.gerg_cur_state.t, app.units.temp);
-    } else {
-        app.aga8_outlet_state.t = units::set_temperature(app.aga8_cur_state.t, app.units.temp);
-        app.gerg_outlet_state.t = units::set_temperature(app.gerg_cur_state.t, app.units.temp);
-    }
+fn set_cur_temperature(temperature: f64, app: &mut App) {
+    let t_val = units::set_temperature(temperature, app.units.temp);
+    app.aga8_cur_state.t = t_val;
+    app.gerg_cur_state.t = t_val;
+    recalculate(app);
+}
+
+
+fn set_temperature(app: &mut App, state: GasState) {
+    match state {
+        GasState::Inlet => {
+            app.aga8_inlet_state.t = units::set_temperature(app.aga8_cur_state.t, app.units.temp);
+            app.gerg_inlet_state.t = units::set_temperature(app.gerg_cur_state.t, app.units.temp);
+            recalculate(app);
+        }
+        GasState::Outlet => {
+            app.aga8_outlet_state.t = units::set_temperature(app.aga8_cur_state.t, app.units.temp);
+            app.gerg_outlet_state.t = units::set_temperature(app.gerg_cur_state.t, app.units.temp);
+            recalculate(app);
+        }
+        _ => {}
+    } 
 }
 
 fn get_density(app: &mut App) -> f64 {
@@ -388,16 +445,18 @@ fn get_jt_coeff(app: &mut App) -> f64 {
 fn set_inlet_conditions(app: &mut App) {
     app.aga8_inlet_state.set_composition(&copy_composition(&app.gas_comp));
     app.gerg_inlet_state.set_composition(&copy_composition(&app.gas_comp));
-    set_pressure(app, true);
-    set_temperature(app, true);
+    set_pressure(app, GasState::Inlet);
+    set_temperature(app, GasState::Inlet);
+    recalculate(app);
     app.show_inlet_state = true;
 }
 
 fn set_outlet_conditions(app: &mut App) {
     app.aga8_outlet_state.set_composition(&copy_composition(&app.gas_comp));
     app.gerg_outlet_state.set_composition(&copy_composition(&app.gas_comp));
-    set_pressure(app, false);
-    set_temperature(app, false);
+    set_pressure(app, GasState::Outlet);
+    set_temperature(app, GasState::Outlet);
+    recalculate(app);
     app.show_outlet_state = true;
 }
 
@@ -527,7 +586,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                 return items
             },
             GasState::Inlet => {
-                                if app.use_gerg2008 {
+                if app.use_gerg2008 {
                     p = app.gerg_inlet_state.p;
                     p = units::get_pressure(p, app.units.pressure);
                     t = app.gerg_inlet_state.t;
@@ -675,4 +734,14 @@ fn recalculate(app: &mut App) {
     app.gerg_cur_state.density(0);
     app.aga8_cur_state.properties();
     app.gerg_cur_state.properties();
+
+    app.aga8_inlet_state.density();
+    app.gerg_inlet_state.density(0);
+    app.aga8_inlet_state.properties();
+    app.gerg_inlet_state.properties();
+
+    app.aga8_outlet_state.density();
+    app.gerg_outlet_state.density(0);
+    app.aga8_outlet_state.properties();
+    app.gerg_outlet_state.properties();
 }
