@@ -176,6 +176,14 @@ pub fn set_temperature(temperature: f64, unit: Temperature) -> f64 {
     }
 }
 
+pub fn get_density(density: f64, unit: Density, molar_mass: f64) -> f64 {
+    match unit {
+        Density::mol_l => density,
+        Density::kg_m3 => density * molar_mass,
+        Density::lbm_ft3 => density * molar_mass * 2.20462 / 35.3147,
+    }
+}
+
 pub fn get_energy(energy: f64, unit: Energy, molar_mass: f64) -> f64 {
     match unit {
         Energy::J_mol => energy,

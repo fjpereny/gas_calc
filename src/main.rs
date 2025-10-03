@@ -1,6 +1,8 @@
 mod units;
 mod gas;
 
+use std::fmt::format;
+
 use aga8::detail::Detail;
 use aga8::gerg2008::Gerg2008;
 use aga8::composition::Composition;
@@ -9,7 +11,8 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, MouseButton
 use ratatui::{
     layout::{Constraint, Layout, Rect}, 
     style::{self, Color, Style, Stylize}, 
-    widgets::{self, Block, Borders, Clear, List, ListItem, Paragraph}, 
+    symbols,
+    widgets::{self, Block, Borders, Clear, List, ListItem, Paragraph,}, 
     Frame
 };
 use ratatui_textarea::TextArea;
@@ -83,6 +86,12 @@ fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::Resul
     }
 }
 
+fn hotkey_menu() -> Paragraph<'static> {
+    Paragraph::new(
+        format!("Esc-Settings\tP-Pressure\tT-Temperature\tI-Set Inlet\tO- Set Outlet\t C-Clear")
+    )
+}
+
 fn draw(frame: &mut Frame, app: &mut App) {
     use Constraint::{Fill, Length, Min};
 
@@ -92,102 +101,51 @@ fn draw(frame: &mut Frame, app: &mut App) {
     let [left_area, center_area, right_area] = horizontal.areas(main_area);
 
     frame.render_widget(Block::bordered().title("Thermodynamic Gas Calculator").style(Color::LightCyan), title_area);
-    frame.render_widget(Block::bordered().title("Status Bar"), status_area);
     
-    let items = vec![
-        ListItem::new(format!("{:<18}", "Air")).bg(Color::Blue),
-        ListItem::new(format!("{:<18} {:.4} {:}", "Pressure:", get_pressure(app), app.units.pressure.print_unit())),
-        ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", get_temperature(app), app.units.temp.print_unit())).bg(Color::DarkGray),
-        ListItem::new(format!("{:<18} {:.4} {}", "Density:", get_density(app), "mol/l")),
-        ListItem::new(format!("{:<18} {:.4} {}", "Molar Mass:", get_molar_mass(app), "g/mol")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<18} {:.4} {}", "Internal Energy:", get_internal_energy(app), app.units.energy.print_unit())),
-        ListItem::new(format!("{:<18} {:.4} {}", "Enthalpy:", get_enthalpy(app), app.units.energy.print_unit())).bg(Color::DarkGray),
-        ListItem::new(format!("{:<18} {:.4} {}", "Entropy:", get_entropy(app), app.units.entropy.print_unit())),
-        ListItem::new(format!("{:<18} {:.4} {}", "Cp:", get_cp(app), app.units.entropy.print_unit())).bg(Color::DarkGray),
-        ListItem::new(format!("{:<18} {:.4} {}", "Cv:", get_cv(app), app.units.entropy.print_unit())),
-        ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv k:", app.gerg_cur_state.kappa, "[]")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound w:", get_speed(app), app.units.speed.print_unit())),
-        ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", get_gibbs_energy(app), format!("{}/{}", app.units.temp.print_unit(), app.units.pressure.print_unit()))).bg(Color::DarkGray),
-        ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", get_jt_coeff(app), app.units.jt_coeff.print_unit()))
-    ];
+    let hotkey_par = hotkey_menu()
+        .block(
+            Block::bordered()
+            .title("Hotkeys")
+            .style(Color::LightCyan)
+        );
+    frame.render_widget(hotkey_par, status_area);
+    
+    let items = get_gas_properties(app);
     let items_list = List::new(items)
-        .block(Block::bordered()
-        .title("Current State"));
+    .block(Block::bordered()
+    .title("Current State"));
     frame.render_widget(items_list, left_area);
-    
+
     if app.show_inlet_state {
-        let p;
-        let p_str = app.units.pressure.print_unit();
-        let t;
-        let t_str = app.units.temp.print_unit();
-        if app.use_gerg2008 {
-            p = app.gerg_cur_state.p;
-            t = app.gerg_cur_state.t;
-        } else {
-            p = app.aga8_cur_state.p;
-            t = app.aga8_cur_state.t;
-        }
-
-        let items = vec![
-        ListItem::new(format!("{:<25}", "Air")).bg(Color::Blue),
-        ListItem::new(format!("{:<25} {:.4} {}", "Pressure:", p, p_str)),
-        ListItem::new(format!("{:<25} {:.4} {}", "Temperature:", t, t_str)).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Density:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Molar Mass:", 100.0, "kPa")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Internal Energy:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Enthalpy:", 100.0, "kPa")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Entropy:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Cp:", 100.0, "kPa")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Cv:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Isentropic Exponent k:", 100.0, "[]")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Speed of Sound w:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Gibbs Energy:", 100.0, "kPa")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Joule-Thompson Coeff:", 100.0, "kPa"))
-
-    ];
-    let items_list = List::new(items)
+        let items = get_gas_properties(app);
+        let items_list = List::new(items)
         .block(Block::bordered()
         .title("Inlet State")
         .style(Color::Green)
     );
-        frame.render_widget(items_list, center_area);
-    } else{
-        frame.render_widget(
-            Block::bordered().title("Inlet State (not defined)")
-            .style(Color::Red), 
-            center_area);
+    frame.render_widget(items_list, center_area);
+} else {
+    frame.render_widget(
+        Block::bordered().title("Inlet State (not defined)")
+        .style(Color::Red), 
+        center_area);
     }
-
+    
     if app.show_outlet_state {
-        let items = vec![
-        ListItem::new(format!("{:<25}", "Air")).bg(Color::Blue),
-        ListItem::new(format!("{:<25} {:.4} {}", "Pressure:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Temperature:", 100.0, "kPa")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Density:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Molar Mass:", 100.0, "kPa")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Internal Energy:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Enthalpy:", 100.0, "kPa")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Entropy:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Cp:", 100.0, "kPa")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Cv:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Isentropic Exponent k:", 100.0, "[]")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Speed of Sound w:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Gibbs Energy:", 100.0, "kPa")).bg(Color::DarkGray),
-        ListItem::new(format!("{:<25} {:.4} {}", "Joule-Thompson Coeff:", 100.0, "kPa"))
-
-    ];
-    let items_list = List::new(items)
-        .block(Block::bordered()
-        .title("Discharge State")
-        .style(Color::LightGreen)
-    );
-    frame.render_widget(items_list, right_area);
-    } else{
+        let items = get_gas_properties(app);
+        let items_list = List::new(items)
+            .block(Block::bordered()
+            .title("Outlet State")
+            .style(Color::Green)
+        );
+        frame.render_widget(items_list, right_area);
+    } else {
         frame.render_widget(
             Block::bordered().title("Outlet State (not defined)")
             .style(Color::Red), 
             right_area);
     }
+        
     
     frame.render_widget(Block::bordered().title("Calculations (set inlet and outlet conditions to calculate)"), calc_area);
 
@@ -195,6 +153,7 @@ fn draw(frame: &mut Frame, app: &mut App) {
         pressure_modal(app, frame, main_area);
     }
 }
+
 
 
 fn handle_events(app: &mut App) -> std::io::Result<bool> {
@@ -211,15 +170,6 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
             },
             _ => {}
         },
-        // Event::Mouse(mouse_event) => {
-        //     match mouse_event.kind {
-        //         event::MouseEventKind::Down(MouseButton::Left) => {
-        //             app.settings_modal_visible = !app.settings_modal_visible;
-        //         },
-        //         _ => {}
-        //     }
-        // },
-        // handle other events
         _ => {}
     }
     Ok(false)
@@ -425,4 +375,98 @@ fn copy_composition(composition: &Composition) -> Composition {
     comp.propane = composition.propane;
     comp.water = composition.water;
     comp
+}
+
+fn get_gas_properties(app: &App) -> Vec<ListItem> {
+        let mut p;
+        let p_str = app.units.pressure.print_unit();
+        let mut t;
+        let t_str = app.units.temp.print_unit();
+        let mut d;
+        let d_str = app.units.density.print_unit();
+        let mm;
+        let mm_str = "g/mol";
+        let mut u;
+        let energy_str = app.units.energy.print_unit();
+        let mut h;
+        let mut s;
+        let entropy_str = app.units.entropy.print_unit();
+        let mut cp;
+        let mut cv;
+        let k;
+        let mut w;
+        let speed_str = app.units.speed.print_unit();
+        let mut g;
+        let mut jt;
+        let jt_str = app.units.jt_coeff.print_unit();
+        if app.use_gerg2008 {
+            p = app.gerg_cur_state.p;
+            p = units::get_pressure(p, app.units.pressure);
+            t = app.gerg_cur_state.t;
+            t = units::get_temperature(t, app.units.temp);
+            mm = app.gerg_cur_state.mm;
+            d = app.gerg_cur_state.d;
+            d = units::get_density(d, app.units.density, mm);
+            u = app.gerg_cur_state.u;
+            u = units::get_energy(u, app.units.energy, mm);
+            h = app.gerg_cur_state.h;
+            h = units::get_energy(h, app.units.energy, mm);
+            s = app.gerg_cur_state.s;
+            s = units::get_entropy(s, app.units.entropy, mm);
+            cp = app.gerg_cur_state.cp;
+            cp = units::get_entropy(cp, app.units.entropy, mm);
+            cv = app.gerg_cur_state.cv;
+            cv = units::get_entropy(cv, app.units.entropy, mm);
+            k = app.gerg_cur_state.kappa;
+            w = app.gerg_cur_state.w;
+            w = units::get_speed(w, app.units.speed);
+            g = app.gerg_cur_state.g;
+            g = units::get_energy(g, app.units.energy, mm);
+            jt = app.gerg_cur_state.jt;
+            jt = units::get_jt_coeff(jt, app.units.jt_coeff);
+        } else {
+            p = app.aga8_cur_state.p;
+            p = units::get_pressure(p, app.units.pressure);
+            t = app.aga8_cur_state.t;
+            t = units::get_temperature(t, app.units.temp);
+            mm = app.aga8_cur_state.mm;
+            d = app.aga8_cur_state.d;
+            d = units::get_density(d, app.units.density, mm);
+            u = app.aga8_cur_state.u;
+            u = units::get_energy(u, app.units.energy, mm);
+            h = app.aga8_cur_state.h;
+            h = units::get_energy(h, app.units.energy, mm);
+            s = app.aga8_cur_state.s;
+            s = units::get_entropy(s, app.units.entropy, mm);
+            cp = app.aga8_cur_state.cp;
+            cp = units::get_entropy(cp, app.units.entropy, mm);
+            cv = app.aga8_cur_state.cv;
+            cv = units::get_entropy(cv, app.units.entropy, mm);
+            k = app.aga8_cur_state.kappa;
+            w = app.aga8_cur_state.w;
+            w = units::get_speed(w, app.units.speed);
+            g = app.aga8_cur_state.g;
+            g = units::get_energy(g, app.units.energy, mm);
+            jt = app.aga8_cur_state.jt;
+            jt = units::get_jt_coeff(jt, app.units.jt_coeff);
+        }
+
+        let items = vec![
+        ListItem::new(format!("{:<18}", "Air")).bg(Color::Blue),
+        ListItem::new(format!("{:<18} {:.4} {}", "Pressure:", p, p_str)),
+        ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", t, t_str)).bg(Color::DarkGray),
+        ListItem::new(format!("{:<18} {:.4} {}", "Density:", d, d_str)),
+        ListItem::new(format!("{:<18} {:.4} {}", "Molar Mass:", mm, mm_str)).bg(Color::DarkGray),
+        ListItem::new(format!("{:<18} {:.4} {}", "Internal Energy:", u, energy_str)),
+        ListItem::new(format!("{:<18} {:.4} {}", "Enthalpy:", h, energy_str)).bg(Color::DarkGray),
+        ListItem::new(format!("{:<18} {:.4} {}", "Entropy:", s, entropy_str)),
+        ListItem::new(format!("{:<18} {:.4} {}", "Cp:", cp, entropy_str)).bg(Color::DarkGray),
+        ListItem::new(format!("{:<18} {:.4} {}", "Cv:", cv, entropy_str)),
+        ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).bg(Color::DarkGray),
+        ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)),
+        ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).bg(Color::DarkGray),
+        ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str))
+
+    ];
+    items
 }
