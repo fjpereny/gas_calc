@@ -116,10 +116,22 @@ fn draw(frame: &mut Frame, app: &mut App) {
     frame.render_widget(items_list, left_area);
     
     if app.show_inlet_state {
+        let p;
+        let p_str = app.units.pressure.print_unit();
+        let t;
+        let t_str = app.units.temp.print_unit();
+        if app.use_gerg2008 {
+            p = app.gerg_cur_state.p;
+            t = app.gerg_cur_state.t;
+        } else {
+            p = app.aga8_cur_state.p;
+            t = app.aga8_cur_state.t;
+        }
+
         let items = vec![
         ListItem::new(format!("{:<25}", "Air")).bg(Color::Blue),
-        ListItem::new(format!("{:<25} {:.4} {}", "Pressure:", 100.0, "kPa")),
-        ListItem::new(format!("{:<25} {:.4} {}", "Temperature:", 100.0, "kPa")).bg(Color::DarkGray),
+        ListItem::new(format!("{:<25} {:.4} {}", "Pressure:", p, p_str)),
+        ListItem::new(format!("{:<25} {:.4} {}", "Temperature:", t, t_str)).bg(Color::DarkGray),
         ListItem::new(format!("{:<25} {:.4} {}", "Density:", 100.0, "kPa")),
         ListItem::new(format!("{:<25} {:.4} {}", "Molar Mass:", 100.0, "kPa")).bg(Color::DarkGray),
         ListItem::new(format!("{:<25} {:.4} {}", "Internal Energy:", 100.0, "kPa")),
@@ -190,8 +202,9 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
             KeyCode::Char('q') => return Ok(true),
             KeyCode::Char('p') => app.pressure_modal_visible = !app.pressure_modal_visible,
-            KeyCode::Char('i') => app.show_inlet_state = true,
-            KeyCode::Char('o') => app.show_outlet_state = true,
+            KeyCode::Char('i') => set_inlet_conditions(app),
+            KeyCode::Char('o') => set_outlet_conditions(app),
+            KeyCode::Char('m') => app.use_gerg2008 = ! app.use_gerg2008,
             KeyCode::Char('c') => {
                 app.show_inlet_state = false;
                 app.show_outlet_state = false;
@@ -283,6 +296,16 @@ fn get_temperature(app: &mut App) -> f64 {
     }
 }
 
+fn set_temperature(app: &mut App, inlet: bool) {
+    if inlet {
+        app.aga8_inlet_state.t = units::set_temperature(app.aga8_cur_state.t, app.units.temp);
+        app.gerg_inlet_state.t = units::set_temperature(app.gerg_cur_state.t, app.units.temp);
+    } else {
+        app.aga8_outlet_state.t = units::set_temperature(app.aga8_cur_state.t, app.units.temp);
+        app.gerg_outlet_state.t = units::set_temperature(app.gerg_cur_state.t, app.units.temp);
+    }
+}
+
 fn get_density(app: &mut App) -> f64 {
     if app.use_gerg2008 {
         app.gerg_cur_state.d
@@ -361,4 +384,45 @@ fn get_jt_coeff(app: &mut App) -> f64 {
     } else {
         units::get_jt_coeff(app.aga8_cur_state.jt, app.units.jt_coeff)
     }
+}
+
+fn set_inlet_conditions(app: &mut App) {
+    app.aga8_inlet_state.set_composition(&copy_composition(&app.gas_comp));
+    app.gerg_inlet_state.set_composition(&copy_composition(&app.gas_comp));
+    set_pressure(app, true);
+    set_temperature(app, true);
+    app.show_inlet_state = true;
+}
+
+fn set_outlet_conditions(app: &mut App) {
+    app.aga8_outlet_state.set_composition(&copy_composition(&app.gas_comp));
+    app.gerg_outlet_state.set_composition(&copy_composition(&app.gas_comp));
+    set_pressure(app, false);
+    set_temperature(app, false);
+    app.show_outlet_state = true;
+}
+
+fn copy_composition(composition: &Composition) -> Composition {
+    let mut comp = Composition::default();
+    comp.argon = composition.argon;
+    comp.carbon_dioxide = composition.carbon_dioxide;
+    comp.carbon_monoxide = composition.carbon_monoxide;
+    comp.decane = composition.decane;
+    comp.ethane = composition.ethane;
+    comp.helium = composition.helium;
+    comp.heptane = composition.heptane;
+    comp.hexane = composition.hexane;
+    comp.hydrogen = composition.hydrogen;
+    comp.hydrogen_sulfide = composition.hydrogen_sulfide;
+    comp.isobutane = composition.isobutane;
+    comp.isopentane = composition.isopentane;
+    comp.methane = composition.methane;
+    comp.n_butane = composition.n_butane;
+    comp.n_pentane = composition.n_pentane;
+    comp.nitrogen = composition.nitrogen;
+    comp.nonane = composition.nonane;
+    comp.octane = composition.octane;
+    comp.propane = composition.propane;
+    comp.water = composition.water;
+    comp
 }
