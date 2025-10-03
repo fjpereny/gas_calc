@@ -1,5 +1,6 @@
-mod units;
+mod calculations;
 mod gas;
+mod units;
 
 use std::{any::Any, fmt::format};
 
@@ -9,8 +10,10 @@ use aga8::composition::Composition;
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, MouseButton, MouseEvent};
 use ratatui::{
-    layout::{Constraint, Layout, Rect}, style::{self, Color, Style, Stylize}, symbols, text::Text, widgets::{self, Block, Borders, Clear, List, ListItem, Paragraph,}, Frame
-};
+    layout::{Constraint, Layout, Rect}, 
+    style::{self, Color, Style, Stylize}, 
+    symbols, text::Text, 
+    widgets::{self, Block, Borders, Clear, List, ListItem, Paragraph,}, Frame};
 use ratatui_textarea::TextArea;
 
 use crate::gas::get_gas_comp;

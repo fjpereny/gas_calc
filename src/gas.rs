@@ -1,7 +1,6 @@
 
 use aga8::composition::Composition;
 
-
 pub enum Gas {
     Air,
     Argon,
