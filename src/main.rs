@@ -37,9 +37,7 @@ use crate::units::
     Units, 
     PrintUnit
 };
-use crate::calculations:: {
-    pressure_ratio,
-};
+use crate::calculations::run_calculations;
 
 pub struct App {
     pub pressure_modal_visible: bool,
@@ -213,11 +211,13 @@ fn draw(frame: &mut Frame, app: &mut App) {
     }
         
     if app.show_inlet_state && app.show_outlet_state {
-        frame.render_widget(
-            Block::bordered()
+        let items = run_calculations(app);
+        let items_list = List::new(items)
+            .block(Block::bordered()
             .title("Calculations")
-            .style(Color::LightCyan), calc_area
+            .style(Color::LightCyan)
         );
+        frame.render_widget(items_list, calc_area);
     } else {
         frame.render_widget(
             Block::bordered()
@@ -331,7 +331,7 @@ fn pressure_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
     let modal_block = Block::new()
     .title("Current State Pressure")
     .borders(Borders::ALL)
-    .style(Style::new().bg(Color::LightBlue));
+    .style(Style::new().fg(Color::White).bg(Color::Blue));
 
     let modal_content = Paragraph::new(format!("Enter Pressure {} (press U to change units)\n{}", app.units.pressure.print_unit(), app.input_text.lines()[0]))
     .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
@@ -382,7 +382,7 @@ fn temperature_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
     let modal_block = Block::new()
     .title("Current State Temperature")
     .borders(Borders::ALL)
-    .style(Style::new().bg(Color::LightBlue));
+    .style(Style::new().fg(Color::White).bg(Color::Blue));
 
     let modal_content = Paragraph::new(format!("Enter temperature {}\n{}", app.units.temp.print_unit(), app.input_text.lines()[0]))
     .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
@@ -806,3 +806,4 @@ fn recalculate(app: &mut App) {
     app.aga8_outlet_state.properties();
     app.gerg_outlet_state.properties();
 }
+
