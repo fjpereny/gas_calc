@@ -59,11 +59,7 @@ impl Default for App {
     }
 }
 
-
-fn main() -> std::io::Result<()> {
-    let mut terminal = ratatui::init();
-    
-    let mut app = App::default();
+fn app_setup(app: &mut App) {
     app.gas_comp = get_gas_comp(gas::Gas::Air);
     app.aga8_cur_state.set_composition(&app.gas_comp);
     app.gerg_cur_state.set_composition(&app.gas_comp);
@@ -71,15 +67,42 @@ fn main() -> std::io::Result<()> {
     app.gerg_inlet_state.set_composition(&app.gas_comp);
     app.aga8_outlet_state.set_composition(&app.gas_comp);
     app.gerg_outlet_state.set_composition(&app.gas_comp);
+
     app.aga8_cur_state.p = 100.0;
     app.gerg_cur_state.p = 100.0;
+    app.aga8_inlet_state.p = 100.0;
+    app.gerg_inlet_state.p = 100.0;
+    app.aga8_outlet_state.p = 100.0;
+    app.gerg_outlet_state.p = 100.0;
+
     app.aga8_cur_state.t = 273.15;
     app.gerg_cur_state.t = 273.15;
+    app.aga8_inlet_state.t = 273.15;
+    app.gerg_inlet_state.t = 273.15;
+    app.aga8_outlet_state.t = 273.15;
+    app.gerg_outlet_state.t = 273.15;
+
     app.aga8_cur_state.density();
     app.gerg_cur_state.density(0);
     app.aga8_cur_state.properties();
     app.gerg_cur_state.properties();
-    
+
+    app.aga8_inlet_state.density();
+    app.gerg_inlet_state.density(0);
+    app.aga8_inlet_state.properties();
+    app.gerg_inlet_state.properties();
+
+    app.aga8_outlet_state.density();
+    app.gerg_outlet_state.density(0);
+    app.aga8_outlet_state.properties();
+    app.gerg_outlet_state.properties();
+}
+
+
+fn main() -> std::io::Result<()> {
+    let mut terminal = ratatui::init();
+    let mut app = App::default();   
+    app_setup(&mut app);
     let result = run(&mut terminal, &mut app);
     ratatui::restore();
     result
@@ -216,7 +239,10 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                 _ =>{
                         let c = key.code.as_char();
                         if c.is_some() {
-                            app.input_text.insert_char(c.unwrap());
+                            let c = c.unwrap();
+                            if c.is_numeric() || c == '.' {
+                                app.input_text.insert_char(c);
+                            }
                         }
                     },
             },
@@ -231,7 +257,10 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                 KeyCode::Char('t') => app.temperature_modal_visible = !app.temperature_modal_visible,
                 KeyCode::Char('i') => set_inlet_conditions(app),
                 KeyCode::Char('o') => set_outlet_conditions(app),
-                KeyCode::Char('m') => app.use_gerg2008 = ! app.use_gerg2008,
+                KeyCode::Char('m') => {
+                    app.use_gerg2008 = ! app.use_gerg2008;
+                    recalculate(app);
+                },
                 KeyCode::Char('c') => {
                     app.show_inlet_state = false;
                     app.show_outlet_state = false;
@@ -275,7 +304,7 @@ fn pressure_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
     .borders(Borders::ALL)
     .style(Style::new().bg(Color::LightBlue));
 
-    let modal_content = Paragraph::new(format!("Enter Pressure {}\n{}", app.units.pressure.print_unit(), app.input_text.lines()[0]))
+    let modal_content = Paragraph::new(format!("Enter Pressure {} (press U to change units)\n{}", app.units.pressure.print_unit(), app.input_text.lines()[0]))
     .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
 
     frame.render_widget(modal_block, modal_area);
