@@ -1,5 +1,6 @@
 mod calculations;
 mod gas;
+mod modals;
 mod units;
 
 use aga8::detail::Detail;
@@ -31,7 +32,10 @@ use ratatui::{
 };
 use ratatui_textarea::TextArea;
 
-use crate::gas::get_gas_comp;
+use crate::gas::{
+    get_gas_comp, 
+    set_gas
+};
 use crate::units::
 {
     Units, 
@@ -42,6 +46,7 @@ use crate::calculations::run_calculations;
 pub struct App {
     pub pressure_modal_visible: bool,
     pub temperature_modal_visible: bool,
+    pub gas_modal_visible: bool,
     pub aga8_cur_state: Detail,
     pub gerg_cur_state: Gerg2008,
     pub aga8_inlet_state: Detail,
@@ -55,6 +60,10 @@ pub struct App {
     pub show_outlet_state: bool,
     pub input_text: TextArea<'static>,
     pub input_modal_active: bool,
+    pub flow_val: f64,
+    pub rpm: f64,
+    pub wheel_diameter: f64,
+    pub gas_text: &'static str,
 }
 
 impl Default for App {
@@ -62,6 +71,7 @@ impl Default for App {
         App { 
             pressure_modal_visible: false,
             temperature_modal_visible: false,
+            gas_modal_visible: false,
             aga8_cur_state: Detail::new(),
             gerg_cur_state: Gerg2008::new(), 
             aga8_inlet_state: Detail::new(),
@@ -75,6 +85,10 @@ impl Default for App {
             show_outlet_state: false,
             input_text: TextArea::default(),
             input_modal_active: false,
+            flow_val: 100.0,
+            rpm: 36_000.0,
+            wheel_diameter: 1.0,
+            gas_text: "Air",
         }
     }
 }
@@ -211,10 +225,19 @@ fn draw(frame: &mut Frame, app: &mut App) {
     }
         
     if app.show_inlet_state && app.show_outlet_state {
+        let pr = calculations::pressure_ratio(app);
+        let title_text;
+        if pr < 1.0 {
+            title_text = "Expansion";
+        } else if pr > 1.0 {
+            title_text = "Compression";
+        } else {
+            title_text = "Isobaric";
+        }
         let items = run_calculations(app);
         let items_list = List::new(items)
             .block(Block::bordered()
-            .title("Calculations")
+            .title(format!("Calculations ({})", title_text))
             .style(Color::LightCyan)
         );
         frame.render_widget(items_list, calc_area);
@@ -228,11 +251,14 @@ fn draw(frame: &mut Frame, app: &mut App) {
 
     if app.pressure_modal_visible { 
         app.input_modal_active = true;
-        pressure_modal(app, frame, main_area);
+        modals::pressure_modal(app, frame, main_area);
     }
     if app.temperature_modal_visible { 
         app.input_modal_active = true;
-        temperature_modal(app, frame, main_area);
+        modals::temperature_modal(app, frame, main_area);
+    }
+    if app.gas_modal_visible{
+        modals::gas_modal(app, frame, main_area);
     }
 }
 
@@ -278,6 +304,64 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         _ => {}
     }
     Ok(false)
+    } else if app.gas_modal_visible {
+        match event::read()? {
+            Event::Key(key) => match key.code {
+                KeyCode::Enter => {
+                    app.gas_modal_visible = false;
+                },
+                KeyCode::Esc => {
+                    app.gas_modal_visible = false;
+                },
+                KeyCode::Char('1') => {
+                    set_gas(app, get_gas_comp(gas::Gas::Air));
+                    app.gas_text = "Air";
+                    app.gas_modal_visible = false;
+                },
+                KeyCode::Char('2') => {
+                    set_gas(app, get_gas_comp(gas::Gas::Argon));
+                    app.gas_text = "Argon";
+                    app.gas_modal_visible = false;
+                },
+                KeyCode::Char('3') => {
+                    set_gas(app, get_gas_comp(gas::Gas::CO));
+                    app.gas_text = "Carbon Monoxide";
+                    app.gas_modal_visible = false;
+                },
+                KeyCode::Char('4') => {
+                    set_gas(app, get_gas_comp(gas::Gas::CO2));
+                    app.gas_text = "Carbon Dioxide";
+                    app.gas_modal_visible = false;
+                },
+                KeyCode::Char('5') => {
+                    set_gas(app, get_gas_comp(gas::Gas::Helium));
+                    app.gas_text = "Helium";
+                    app.gas_modal_visible = false;
+                },
+                KeyCode::Char('6') => {
+                    set_gas(app, get_gas_comp(gas::Gas::Hydrogen));
+                    app.gas_text = "Hydrogen";
+                    app.gas_modal_visible = false;
+                },
+                KeyCode::Char('7') => {
+                    set_gas(app, get_gas_comp(gas::Gas::Nitrogen));
+                    app.gas_text = "Nitrogen";
+                    app.gas_modal_visible = false;
+                },
+                KeyCode::Char('8') => {
+                    set_gas(app, get_gas_comp(gas::Gas::Oxygen));
+                    app.gas_text = "Oxygen";
+                    app.gas_modal_visible = false;
+                },
+                KeyCode::Char('9') => {
+                    app.gas_text = "Custom";
+                    app.gas_modal_visible = false;
+                },
+                _ =>{},
+            },
+            _ => {}
+        }
+        Ok(false)
     } else {
         match event::read()? {
             Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
@@ -294,50 +378,15 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                     app.show_inlet_state = false;
                     app.show_outlet_state = false;
                 },
+                KeyCode::Char('g') => {
+                    app.gas_modal_visible = ! app.gas_modal_visible
+                }
                 _ => {}
             },
             _ => {}
     }
     Ok(false)
     }
-}
-
-
-/// Helper function to create a centered rect using a certain percentage of the available rect `r`.
-fn popup_area(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let popup_layout = Layout::vertical([
-        Constraint::Percentage((100 - percent_y) / 2),
-        Constraint::Percentage(percent_y),
-        Constraint::Percentage((100 - percent_y) / 2),
-    ])
-    .split(r);
-
-    Layout::horizontal([
-        Constraint::Percentage((100 - percent_x) / 2),
-        Constraint::Percentage(percent_x),
-        Constraint::Percentage((100 - percent_x) / 2),
-    ])
-    .split(popup_layout[1])[1]
-}
-
-fn pressure_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
-    let modal_width_percent = 60;
-    let modal_height_percent = 20;
-    let modal_area = popup_area(main_area, modal_width_percent, modal_height_percent);
-
-    // Clear the background behind the modal
-    frame.render_widget(Clear, modal_area);
-
-    let modal_block = Block::new()
-    .title("Current State Pressure")
-    .borders(Borders::ALL)
-    .style(Style::new().fg(Color::White).bg(Color::Blue));
-
-    let modal_content = Paragraph::new(format!("Enter Pressure {} (press U to change units)\n{}", app.units.pressure.print_unit(), app.input_text.lines()[0]))
-    .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
-
-    frame.render_widget(modal_block, modal_area);
-    frame.render_widget(modal_content, modal_area);
 }
 
 fn get_pressure(app: &mut App) -> f64 {
@@ -369,26 +418,6 @@ fn set_pressure(app: &mut App, state: GasState) {
         }
         _ => {}
     } 
-}
-
-fn temperature_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
-    let modal_width_percent = 60;
-    let modal_height_percent = 20;
-    let modal_area = popup_area(main_area, modal_width_percent, modal_height_percent);
-
-    // Clear the background behind the modal
-    frame.render_widget(Clear, modal_area);
-
-    let modal_block = Block::new()
-    .title("Current State Temperature")
-    .borders(Borders::ALL)
-    .style(Style::new().fg(Color::White).bg(Color::Blue));
-
-    let modal_content = Paragraph::new(format!("Enter temperature {}\n{}", app.units.temp.print_unit(), app.input_text.lines()[0]))
-    .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
-
-    frame.render_widget(modal_block, modal_area);
-    frame.render_widget(modal_content, modal_area);
 }
 
 fn get_temperature(app: &mut App) -> f64 {
@@ -629,7 +658,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     jt = units::get_jt_coeff(jt, app.units.jt_coeff);
             }
             let items = vec![
-            ListItem::new(format!("{:<18}", "Air")).fg(Color::White).bg(Color::Blue),
+            ListItem::new(format!("{:<18}", app.gas_text)).fg(Color::White).bg(Color::Blue),
             ListItem::new(format!("{:<18} {:.4} {}", "Pressure:", p, p_str)).fg(Color::White).bg(Color::Black),
             ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", t, t_str)).fg(Color::Black).bg(Color::DarkGray),
             ListItem::new(format!("{:<18} {:.4} {}", "Density:", d, d_str)).fg(Color::White).bg(Color::Black),
@@ -699,7 +728,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     jt = units::get_jt_coeff(jt, app.units.jt_coeff);
             }
             let items = vec![
-            ListItem::new(format!("{:<18}", "Air")).fg(Color::White).bg(Color::Blue),
+            ListItem::new(format!("{:<18}", app.gas_text)).fg(Color::White).bg(Color::Blue),
             ListItem::new(format!("{:<18} {:.4} {}", "Pressure:", p, p_str)).fg(Color::Green).bg(Color::Black),
             ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", t, t_str)).fg(Color::Black).bg(Color::DarkGray),
             ListItem::new(format!("{:<18} {:.4} {}", "Density:", d, d_str)).fg(Color::Green).bg(Color::Black),
@@ -769,7 +798,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     jt = units::get_jt_coeff(jt, app.units.jt_coeff);
             }
             let items = vec![
-            ListItem::new(format!("{:<18}", "Air")).fg(Color::White).bg(Color::Blue),
+            ListItem::new(format!("{:<18}", app.gas_text)).fg(Color::White).bg(Color::Blue),
             ListItem::new(format!("{:<18} {:.4} {}", "Pressure:", p, p_str)).fg(Color::Green).bg(Color::Black),
             ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", t, t_str)).fg(Color::Black).bg(Color::DarkGray),
             ListItem::new(format!("{:<18} {:.4} {}", "Density:", d, d_str)).fg(Color::Green).bg(Color::Black),

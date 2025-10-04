@@ -103,50 +103,59 @@ pub fn compression_polytropic_eff(app: &mut App) -> f64 {
     n / (n-1.0) * (k-1.0) / k
 }
 
+pub fn work(app: &mut App) -> f64 {
+    let hd = enthalpy_change(app);
+    hd * app.flow_val
+}
+
+pub fn tip_speed(app: &mut App) -> f64 {
+    let pi = std::f64::consts::PI;
+    pi * app.wheel_diameter * app.rpm / 60.0
+}
+
 pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
     let pressure_ratio = pressure_ratio(app);
     let temperature_ratio = temperature_ratio(app);
 
-    let items = vec![
+    let items = vec![   
         ListItem::new(
-            format!("{}", state_change_mode(app))
-        )
-            .fg(Color::LightCyan)
-            .bg(Color::Black),
-        
-        ListItem::new(
-            format!("{:<18} {:.4} {:15} {} {:.4} {}", 
-            "Press Ratio:", pressure_ratio, "[]",
-            "Polytropic Exp:", compression_polytropic_exp(app), "[]",
-        )
+            format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
+                "Press Ratio:", pressure_ratio, "[]",
+                "Polytropic Exp:", compression_polytropic_exp(app), "[]",
+                "Wheel Dia:", app.wheel_diameter, "m",
+            )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {:15} {} {:.4} {}", 
-            "Temp Ratio:", temperature_ratio, "[]",
-            "Polytropic Eff:", compression_polytropic_eff(app), "[]",
-        )
-        )
-            .fg(Color::LightCyan)
-            .bg(Color::Black),
-
-        ListItem::new(
-            format!("{:<18} {:.4} {}", "Temp Change:", 
-                temperature_change(app), 
-                app.units.temp.print_unit())
+            format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
+                "Temp Ratio:", temperature_ratio, "[]",
+                "Polytropic Eff:", compression_polytropic_eff(app), "[]",
+                "Wheel Speed:", app.rpm, "RPM",
+            )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {}", "Enthalpy Change:", 
-                enthalpy_change(app), 
-                app.units.energy.print_unit())
+            format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
+                "Temp Change:", temperature_change(app), app.units.temp.print_unit(),
+                "Isentropic Eff:", compression_isentropic_eff(app), "[]",
+                "Tip Speed:", tip_speed(app), "m/s",
+            )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
+
+        ListItem::new(
+            format!("{:<18} {:.4} {:18} {} {:.4} {:18}", 
+                "Enthalpy Change:", enthalpy_change(app), app.units.energy.print_unit(),
+                "Q/N (Flow/RPM):", app.flow_val / app.rpm, "TBC",
+            )
+        )
+        .fg(Color::LightCyan)
+        .bg(Color::Black),
 
         ListItem::new(
             format!("{:<18} {:.4} {}", "Entropy Change:", 
@@ -165,9 +174,14 @@ pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {}", "Isentropic Eff:", 
-                compression_isentropic_eff(app), 
-                "[]")
+            format!("{:<18} {:.4} {}", 
+            "Flow Q:", app.flow_val, "kg/s")
+        )
+            .fg(Color::LightCyan)
+            .bg(Color::Black),
+        ListItem::new(
+            format!("{:<18} {:.4} {}", 
+            "Work:", work(app), "kJ/s")
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),

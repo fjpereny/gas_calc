@@ -1,5 +1,9 @@
 
 use aga8::composition::Composition;
+use crate::{
+    App,
+    recalculate,
+};
 
 pub enum Gas {
     Air,
@@ -51,4 +55,14 @@ pub fn get_gas_comp(gas_comp: Gas) -> Composition{
         },
     }
 
+}
+
+pub fn set_gas(app: &mut App, composition: Composition) {
+    app.aga8_cur_state.set_composition(&composition);
+    app.gerg_cur_state.set_composition(&composition);
+    app.aga8_inlet_state.set_composition(&composition);
+    app.gerg_inlet_state.set_composition(&composition);
+    app.aga8_outlet_state.set_composition(&composition);
+    app.gerg_outlet_state.set_composition(&composition);
+    recalculate(app);
 }
