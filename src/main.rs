@@ -47,6 +47,7 @@ pub struct App {
     pub pressure_modal_visible: bool,
     pub temperature_modal_visible: bool,
     pub gas_modal_visible: bool,
+    pub flow_modal_visible: bool,
     pub aga8_cur_state: Detail,
     pub gerg_cur_state: Gerg2008,
     pub aga8_inlet_state: Detail,
@@ -72,6 +73,7 @@ impl Default for App {
             pressure_modal_visible: false,
             temperature_modal_visible: false,
             gas_modal_visible: false,
+            flow_modal_visible: false,
             aga8_cur_state: Detail::new(),
             gerg_cur_state: Gerg2008::new(), 
             aga8_inlet_state: Detail::new(),
@@ -257,8 +259,12 @@ fn draw(frame: &mut Frame, app: &mut App) {
         app.input_modal_active = true;
         modals::temperature_modal(app, frame, main_area);
     }
-    if app.gas_modal_visible{
+    if app.gas_modal_visible {
         modals::gas_modal(app, frame, main_area);
+    }
+    if app.flow_modal_visible {
+        app.input_modal_active = true;
+        modals::flow_modal(app, frame, main_area);
     }
 }
 
@@ -275,17 +281,21 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                             set_cur_pressure(val, app);
                         } else if app.temperature_modal_visible {
                             set_cur_temperature(val, app);
+                        } else if app.flow_modal_visible {
+                            set_cur_flow(val, app);
                         }
                     }
                     app.input_modal_active = false;
                     app.temperature_modal_visible = false;
                     app.pressure_modal_visible = false;
+                    app.flow_modal_visible = false;
                     app.input_text = TextArea::default();
                 },
                 KeyCode::Esc => {
                     app.input_modal_active = false;
                     app.pressure_modal_visible = false;
                     app.temperature_modal_visible = false;
+                    app.flow_modal_visible = false;
                     app.input_text = TextArea::default();
                 },
                 KeyCode::Backspace => {
@@ -381,6 +391,9 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                 KeyCode::Char('g') => {
                     app.gas_modal_visible = ! app.gas_modal_visible
                 }
+                KeyCode::Char('f') => {
+                    app.flow_modal_visible = ! app.flow_modal_visible
+                }
                 _ => {}
             },
             _ => {}
@@ -435,6 +448,9 @@ fn set_cur_temperature(temperature: f64, app: &mut App) {
     recalculate(app);
 }
 
+fn set_cur_flow(flow_rate: f64, app: &mut App) {
+    app.flow_val = flow_rate;
+}
 
 fn set_temperature(app: &mut App, state: GasState) {
     match state {

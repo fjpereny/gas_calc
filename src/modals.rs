@@ -84,6 +84,29 @@ pub fn temperature_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
     frame.render_widget(modal_content, modal_area);
 }
 
+pub fn flow_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
+    let modal_width_percent = 60;
+    let modal_height_percent = 20;
+    let modal_area = popup_area(main_area, modal_width_percent, modal_height_percent);
+
+    // Clear the background behind the modal
+    frame.render_widget(Clear, modal_area);
+
+    let modal_block = Block::new()
+    .title("Flow Rate")
+    .borders(Borders::ALL)
+    .style(Style::new().fg(Color::White).bg(Color::Blue));
+
+    let modal_content = Paragraph::new(
+        format!("Enter flow rate {}\n{}", 
+        "kg/s", 
+        app.input_text.lines()[0]))
+    .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
+
+    frame.render_widget(modal_block, modal_area);
+    frame.render_widget(modal_content, modal_area);
+}
+
 pub fn gas_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
     let modal_width_percent = 60;
     let modal_height_percent = 20;
