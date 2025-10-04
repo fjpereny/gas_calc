@@ -190,12 +190,19 @@ fn draw(frame: &mut Frame, app: &mut App) {
             right_area);
     }
         
-    
-    frame.render_widget(
-        Block::bordered()
-        .title("Calculations (set inlet and outlet conditions to calculate)")
-        .style(Color::Red), calc_area
-    );
+    if app.show_inlet_state && app.show_outlet_state {
+        frame.render_widget(
+            Block::bordered()
+            .title("Calculations")
+            .style(Color::LightCyan), calc_area
+        );
+    } else {
+        frame.render_widget(
+            Block::bordered()
+            .title("Calculations (set inlet and outlet conditions to calculate)")
+            .style(Color::Red), calc_area
+        );
+    }
 
     if app.pressure_modal_visible { 
         app.input_modal_active = true;
