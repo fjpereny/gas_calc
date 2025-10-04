@@ -2,22 +2,44 @@ mod calculations;
 mod gas;
 mod units;
 
-use std::{any::Any, fmt::format};
-
 use aga8::detail::Detail;
 use aga8::gerg2008::Gerg2008;
 use aga8::composition::Composition;
 
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, MouseButton, MouseEvent};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+
 use ratatui::{
-    layout::{Constraint, Layout, Rect}, 
-    style::{self, Color, Style, Stylize}, 
-    symbols, text::Text, 
-    widgets::{self, Block, Borders, Clear, List, ListItem, Paragraph,}, Frame};
+    layout::{
+        Constraint, 
+        Layout, 
+        Rect
+    }, 
+    style::{
+        Color, 
+        Style, 
+        Stylize
+    }, 
+    widgets::{
+        Block, 
+        Borders, 
+        Clear, 
+        List, 
+        ListItem, 
+        Paragraph,
+    }, 
+    Frame
+};
 use ratatui_textarea::TextArea;
 
 use crate::gas::get_gas_comp;
-use crate::units::{Units, PrintUnit};
+use crate::units::
+{
+    Units, 
+    PrintUnit
+};
+use crate::calculations:: {
+    pressure_ratio,
+};
 
 pub struct App {
     pub pressure_modal_visible: bool,
