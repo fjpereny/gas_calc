@@ -79,19 +79,30 @@ pub fn ave_cp_cv(app: &App) -> f64 {
     }
 }
 
-pub fn compression_isentropic_eff(app: &mut App) -> f64 {
-    let pr = pressure_ratio(app);
-    let k = ave_cp_cv(app);
-    let t_in;
-    let td;
+pub fn isentropic_eff(app: &mut App, hs: f64) -> f64 {
     if app.use_gerg2008 {
-        t_in = app.gerg_inlet_state.t;
-        td = app.gerg_outlet_state.t - app.gerg_inlet_state.t;
+        let pr = app.gerg_outlet_state.p / app.gerg_inlet_state.p;
+        if pr >= 1.0 {
+            let hd = app.gerg_outlet_state.h - app.gerg_inlet_state.h;
+            let hds = hs - app.gerg_inlet_state.h;
+            hds / hd
+        } else {
+            let hd = app.gerg_inlet_state.h - app.gerg_outlet_state.h;
+            let hds = app.gerg_inlet_state.h - hs;
+            hd / hds
+        }
     } else {
-        t_in = app.aga8_inlet_state.t;
-        td = app.aga8_outlet_state.t - app.aga8_inlet_state.t;
+        let pr = app.aga8_outlet_state.p / app.aga8_inlet_state.p;
+        if pr >= 1.0 {
+            let hd = app.aga8_outlet_state.h - app.aga8_inlet_state.h;
+            let hds = hs - app.aga8_inlet_state.h;
+            hds / hd
+        } else {
+            let hd = app.aga8_inlet_state.h - app.aga8_outlet_state.h;
+            let hds = app.aga8_inlet_state.h - hs;
+            hd / hds
+        }
     }
-    (pr.powf((k-1.0)/k) - 1.0) * t_in / td
 }
 
 pub fn compression_polytropic_exp(app: &mut App) -> f64 {
@@ -100,7 +111,7 @@ pub fn compression_polytropic_exp(app: &mut App) -> f64 {
     pr.ln() / dr.ln()
 }
 
-pub fn compression_polytropic_eff(app: &mut App) -> f64 {
+pub fn polytropic_eff(app: &mut App) -> f64 {
     let n = compression_polytropic_exp(app);
     let k = ave_cp_cv(app);
     n / (n-1.0) * (k-1.0) / k
@@ -186,7 +197,7 @@ pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
         ListItem::new(
             format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
                 "Press Ratio:", pressure_ratio, "[]",
-                "Polytropic Exp:", compression_polytropic_exp(app), "[]",
+                "Isentropic Eff:", isentropic_eff(app, hs), "[]",
                 "Wheel Dia:", app.wheel_diameter, "m",
             )
         )
@@ -196,7 +207,7 @@ pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
         ListItem::new(
             format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
                 "Temp Ratio:", temperature_ratio, "[]",
-                "Polytropic Eff:", compression_polytropic_eff(app), "[]",
+                "Isen Enthalpy Hs:", hs, app.units.energy.print_unit(),
                 "Wheel Speed:", app.rpm, "RPM",
             )
         )
@@ -206,7 +217,7 @@ pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
         ListItem::new(
             format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
                 "Temp Change:", temperature_change(app), app.units.temp.print_unit(),
-                "Isentropic Eff:", compression_isentropic_eff(app), "[]",
+                "Isen Temp Ts:", get_temperature(ts, app.units.temp), app.units.temp.print_unit(),
                 "Tip Speed:", tip_speed(app), "m/s",
             )
         )
@@ -216,7 +227,7 @@ pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
         ListItem::new(
             format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
                 "Enthalpy Change:", hd, app.units.energy.print_unit(),
-                "Isen Enthalpy Hs:", hs, app.units.energy.print_unit(),
+                "Isen Enthalpy Change:", hds, app.units.energy.print_unit(),
                 "Q/N (Flow/RPM):", app.flow_val / app.rpm, "TBC",
             )
         )
@@ -224,18 +235,16 @@ pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
         .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {:18} {} {:.4} {:18}", 
+            format!("{:<18} {:.4} {:18}", 
                 "Entropy Change:", entropy_change(app), app.units.entropy.print_unit(),
-                "Isen Temp Ts:", get_temperature(ts, app.units.temp), app.units.temp.print_unit(),
             )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {:18} {} {:.4} {:18}",  
+            format!("{:<18} {:.4} {:18}",  
                 "Ave Cp/Cv:", ave_cp_cv(app), "[]",
-                "Isen Enthalpy Change:", hds, app.units.energy.print_unit(),
             )
         )
             .fg(Color::LightCyan)
