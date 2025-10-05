@@ -694,6 +694,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
         let mut cp;
         let mut cv;
         let k;
+        let z;
         let mut w;
         let speed_str = app.units.speed.print_unit();
         let mut g;
@@ -721,6 +722,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     cv = app.gerg_cur_state.cv;
                     cv = units::get_entropy(cv, app.units.entropy, mm);
                     k = app.gerg_cur_state.kappa;
+                    z = app.gerg_cur_state.z;
                     w = app.gerg_cur_state.w;
                     w = units::get_speed(w, app.units.speed);
                     g = app.gerg_cur_state.g;
@@ -746,6 +748,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     cv = app.aga8_cur_state.cv;
                     cv = units::get_entropy(cv, app.units.entropy, mm);
                     k = app.aga8_cur_state.kappa;
+                    z = app.aga8_cur_state.z;
                     w = app.aga8_cur_state.w;
                     w = units::get_speed(w, app.units.speed);
                     g = app.aga8_cur_state.g;
@@ -765,9 +768,10 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
             ListItem::new(format!("{:<18} {:.4} {}", "Cp:", cp, entropy_str)).fg(Color::Black).bg(Color::DarkGray),
             ListItem::new(format!("{:<18} {:.4} {}", "Cv:", cv, entropy_str)).fg(Color::White).bg(Color::Black),
             ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::White).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::White).bg(Color::Black),
+            ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::White).bg(Color::Black),
+            ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Black).bg(Color::DarkGray),
+            ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::White).bg(Color::Black),
+            ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Black).bg(Color::DarkGray),
         ];
                 return items
             },
@@ -791,6 +795,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     cv = app.gerg_inlet_state.cv;
                     cv = units::get_entropy(cv, app.units.entropy, mm);
                     k = app.gerg_inlet_state.kappa;
+                    z = app.gerg_inlet_state.z;
                     w = app.gerg_inlet_state.w;
                     w = units::get_speed(w, app.units.speed);
                     g = app.gerg_inlet_state.g;
@@ -816,6 +821,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     cv = app.aga8_inlet_state.cv;
                     cv = units::get_entropy(cv, app.units.entropy, mm);
                     k = app.aga8_inlet_state.kappa;
+                    z = app.aga8_inlet_state.z;
                     w = app.aga8_inlet_state.w;
                     w = units::get_speed(w, app.units.speed);
                     g = app.aga8_inlet_state.g;
@@ -835,6 +841,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
             ListItem::new(format!("{:<18} {:.4} {}", "Cp:", cp, entropy_str)).fg(Color::Black).bg(Color::DarkGray),
             ListItem::new(format!("{:<18} {:.4} {}", "Cv:", cv, entropy_str)).fg(Color::Green).bg(Color::Black),
             ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
+            ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::White).bg(Color::Black),
             ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Green).bg(Color::Black),
             ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Black).bg(Color::DarkGray),
             ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Green).bg(Color::Black),
@@ -861,6 +868,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     cv = app.gerg_outlet_state.cv;
                     cv = units::get_entropy(cv, app.units.entropy, mm);
                     k = app.gerg_outlet_state.kappa;
+                    z = app.gerg_outlet_state.z;
                     w = app.gerg_outlet_state.w;
                     w = units::get_speed(w, app.units.speed);
                     g = app.gerg_outlet_state.g;
@@ -886,6 +894,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     cv = app.aga8_outlet_state.cv;
                     cv = units::get_entropy(cv, app.units.entropy, mm);
                     k = app.aga8_outlet_state.kappa;
+                    z = app.aga8_outlet_state.z;
                     w = app.aga8_outlet_state.w;
                     w = units::get_speed(w, app.units.speed);
                     g = app.aga8_outlet_state.g;
@@ -905,6 +914,7 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
             ListItem::new(format!("{:<18} {:.4} {}", "Cp:", cp, entropy_str)).fg(Color::Black).bg(Color::DarkGray),
             ListItem::new(format!("{:<18} {:.4} {}", "Cv:", cv, entropy_str)).fg(Color::Green).bg(Color::Black),
             ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
+            ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::White).bg(Color::Black),
             ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Green).bg(Color::Black),
             ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Black).bg(Color::DarkGray),
             ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Green).bg(Color::Black),

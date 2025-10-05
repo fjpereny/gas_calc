@@ -1,4 +1,6 @@
 
+use aga8::gerg2008::Gerg2008;
+use aga8::detail::Detail;
 use ratatui::widgets::ListItem;
 use ratatui::
     style::{
@@ -6,7 +8,12 @@ use ratatui::
         Stylize
     };
 
-use crate::units::{self, PrintUnit};
+use crate::units::{
+    self, 
+    PrintUnit,
+    set_temperature,
+    get_temperature,
+};
 use crate::App;
 
 pub fn density_ratio(app: &App) -> f64 {
@@ -109,9 +116,71 @@ pub fn tip_speed(app: &mut App) -> f64 {
     pi * app.wheel_diameter * app.rpm / 60.0
 }
 
+pub fn isentropic_temp(app: &mut App) -> f64 {
+    let t1;
+    let t2s;
+    let p1;
+    let p2;
+    let k;
+    if app.use_gerg2008 {
+        t1 = app.gerg_inlet_state.t;
+        p1 = app.gerg_inlet_state.p;
+        p2 = app.gerg_outlet_state.p;
+        k = (app.gerg_inlet_state.kappa + app.gerg_outlet_state.kappa) / 2.0;
+        let pr = p2 / p1;
+        t2s = t1 * pr.powf((k-1.0)/k);
+    } else {
+        t1 = app.aga8_inlet_state.t;
+        p1 = app.aga8_inlet_state.p;
+        p2 = app.aga8_outlet_state.p;
+        k = (app.aga8_inlet_state.kappa + app.aga8_outlet_state.kappa) / 2.0;
+        let pr = p2 / p1;
+        t2s = t1 * pr.powf((k-1.0)/k);
+    }
+    t2s
+}
+
+pub fn isentropic_enthalpy(app: &mut App, ts: f64) -> f64 {
+    let hs;
+    if app.use_gerg2008 {
+        let mut gas_state = Gerg2008::new();
+        gas_state.set_composition(&app.gas_comp);
+        gas_state.p = app.gerg_outlet_state.p;
+        gas_state.t = ts;
+        gas_state.density(0);
+        gas_state.properties();
+        hs = gas_state.h;
+    } else {
+        let mut gas_state = Detail::default();
+        gas_state.set_composition(&app.gas_comp);
+        gas_state.p = app.aga8_outlet_state.p;
+        gas_state.t = ts;
+        gas_state.density();
+        gas_state.properties();
+        hs = gas_state.h;
+    }
+    hs
+}
+
+pub fn isentropic_enthalpy_change(app: &mut App, hs: f64) -> f64 {
+    let hds;
+    if app.use_gerg2008 {
+        let h1 = app.gerg_inlet_state.h;
+        hds = hs - h1;
+    } else {
+        let h1 = app.aga8_inlet_state.h;
+        hds = hs - h1;
+    }
+    hds
+}
+
 pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
     let pressure_ratio = pressure_ratio(app);
     let temperature_ratio = temperature_ratio(app);
+    let hd = enthalpy_change(app);
+    let ts = isentropic_temp(app);
+    let hs = isentropic_enthalpy(app, ts);
+    let hds = isentropic_enthalpy_change(app, hs);
 
     let items = vec![   
         ListItem::new(
@@ -145,8 +214,9 @@ pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {:18} {} {:.4} {:18}", 
-                "Enthalpy Change:", enthalpy_change(app), app.units.energy.print_unit(),
+            format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
+                "Enthalpy Change:", hd, app.units.energy.print_unit(),
+                "Isen Enthalpy Hs:", hs, app.units.energy.print_unit(),
                 "Q/N (Flow/RPM):", app.flow_val / app.rpm, "TBC",
             )
         )
@@ -154,17 +224,19 @@ pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
         .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {}", "Entropy Change:", 
-                entropy_change(app), 
-                app.units.entropy.print_unit())
+            format!("{:<18} {:.4} {:18} {} {:.4} {:18}", 
+                "Entropy Change:", entropy_change(app), app.units.entropy.print_unit(),
+                "Isen Temp Ts:", get_temperature(ts, app.units.temp), app.units.temp.print_unit(),
+            )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {}", "Ave Cp/Cv:", 
-                ave_cp_cv(app), 
-                "[]")
+            format!("{:<18} {:.4} {:18} {} {:.4} {:18}",  
+                "Ave Cp/Cv:", ave_cp_cv(app), "[]",
+                "Isen Enthalpy Change:", hds, app.units.energy.print_unit(),
+            )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),

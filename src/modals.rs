@@ -77,7 +77,7 @@ pub fn temperature_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
     .borders(Borders::ALL)
     .style(Style::new().fg(Color::White).bg(Color::Blue));
 
-    let modal_content = Paragraph::new(format!("Enter temperature {}\n{}", app.units.temp.print_unit(), app.input_text.lines()[0]))
+    let modal_content = Paragraph::new(format!("Enter Temperature {} (press U to change units)\n{}", app.units.temp.print_unit(), app.input_text.lines()[0]))
     .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
 
     frame.render_widget(modal_block, modal_area);
@@ -165,7 +165,7 @@ pub fn temperature_units_modal(app: &mut App, frame: &mut Frame, main_area: Rect
     .style(Style::new().fg(Color::White).bg(Color::Blue));
 
     let modal_content: Paragraph<'_> = Paragraph::new(
-        format!("Select Pressure Unit\n1-K 2-C 3-R 4-F")
+        format!("Select Pressure Unit\n1-K\t2-C\t3-R\t4-F")
     )
     .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
 
