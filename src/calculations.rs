@@ -6,19 +6,8 @@ use ratatui::
         Stylize
     };
 
-use crate::units::PrintUnit;
+use crate::units::{self, PrintUnit};
 use crate::App;
-
-pub fn state_change_mode(app: &App) -> &'static str {
-    let pr = pressure_ratio(app);
-    if pr < 1.0 {
-        "Expansion"
-    } else if pr > 1.0 {
-        "Compression"
-    } else {
-        "Isobaric"
-    }
-}
 
 pub fn density_ratio(app: &App) -> f64 {
     if app.use_gerg2008 {
@@ -45,11 +34,18 @@ pub fn temperature_ratio(app: &App) -> f64 {
 }
 
 pub fn temperature_change(app: &App) -> f64 {
+    let t1;
+    let t2;
     if app.use_gerg2008 {
-        app.gerg_outlet_state.t - app.gerg_inlet_state.t
+        t1 = app.gerg_inlet_state.t;
+        t2 = app.gerg_outlet_state.t;
     } else {
-        app.aga8_outlet_state.t - app.aga8_inlet_state.t
+        t1 = app.aga8_inlet_state.t;
+        t2 = app.aga8_outlet_state.t;
     }
+    let t1 = units::get_temperature(t1, app.units.temp);
+    let t2 = units::get_temperature(t2, app.units.temp);
+    t2 - t1
 }
 
 pub fn enthalpy_change(app: &App) -> f64 {

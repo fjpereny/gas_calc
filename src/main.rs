@@ -48,6 +48,8 @@ pub struct App {
     pub temperature_modal_visible: bool,
     pub gas_modal_visible: bool,
     pub flow_modal_visible: bool,
+    pub pressure_units_modal_visible: bool,
+    pub temperature_units_modal_visible: bool,
     pub aga8_cur_state: Detail,
     pub gerg_cur_state: Gerg2008,
     pub aga8_inlet_state: Detail,
@@ -74,6 +76,8 @@ impl Default for App {
             temperature_modal_visible: false,
             gas_modal_visible: false,
             flow_modal_visible: false,
+            pressure_units_modal_visible: false,
+            temperature_units_modal_visible: false,
             aga8_cur_state: Detail::new(),
             gerg_cur_state: Gerg2008::new(), 
             aga8_inlet_state: Detail::new(),
@@ -266,6 +270,12 @@ fn draw(frame: &mut Frame, app: &mut App) {
         app.input_modal_active = true;
         modals::flow_modal(app, frame, main_area);
     }
+    if app.pressure_units_modal_visible {
+        modals::pressure_units_modal(app, frame, main_area);
+    }
+    if app.temperature_units_modal_visible {
+        modals::temperature_units_modal(app, frame, main_area);
+    }
 }
 
 fn handle_events(app: &mut App) -> std::io::Result<bool> {
@@ -300,6 +310,16 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                 },
                 KeyCode::Backspace => {
                     app.input_text.delete_char();
+                }
+                KeyCode::Char('u') => {
+                    if app.pressure_modal_visible {
+                        app.pressure_units_modal_visible = true;
+                    } else if app.temperature_modal_visible {
+                        app.temperature_units_modal_visible = true;
+                    }
+                    app.input_modal_active = false;
+                    app.pressure_modal_visible = false;
+                    app.temperature_modal_visible = false;
                 }
                 _ =>{
                         let c = key.code.as_char();
@@ -372,6 +392,62 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
             _ => {}
         }
         Ok(false)
+    } else if app.pressure_units_modal_visible {
+        match event::read()? {
+            Event::Key(key) => match key.code {
+                KeyCode::Enter => {
+                    app.pressure_units_modal_visible = false;
+                },
+                KeyCode::Esc => {
+                    app.pressure_units_modal_visible = false;
+                },
+                KeyCode::Char('1') => {
+                    app.units.pressure = units::Pressure::kPa;
+                    app.pressure_units_modal_visible = false;
+                },
+                KeyCode::Char('2') => {
+                    app.units.pressure = units::Pressure::Bar;
+                    app.pressure_units_modal_visible = false;
+                },
+                KeyCode::Char('3') => {
+                    app.units.pressure = units::Pressure::PSI;
+                    app.pressure_units_modal_visible = false;
+                },
+                _ =>{},
+            },
+            _ => {}
+        }
+        Ok(false)
+    } else if app.temperature_units_modal_visible {
+        match event::read()? {
+            Event::Key(key) => match key.code {
+                KeyCode::Enter => {
+                    app.temperature_units_modal_visible = false;
+                },
+                KeyCode::Esc => {
+                    app.temperature_units_modal_visible = false;
+                },
+                KeyCode::Char('1') => {
+                    app.units.temp = units::Temperature::K;
+                    app.temperature_units_modal_visible = false;
+                },
+                KeyCode::Char('2') => {
+                    app.units.temp = units::Temperature::C;
+                    app.temperature_units_modal_visible = false;
+                },
+                KeyCode::Char('3') => {
+                    app.units.temp = units::Temperature::R;
+                    app.temperature_units_modal_visible = false;
+                },
+                KeyCode::Char('4') => {
+                    app.units.temp = units::Temperature::F;
+                    app.temperature_units_modal_visible = false;
+                },
+                _ =>{},
+            },
+            _ => {}
+        }
+        Ok(false)
     } else {
         match event::read()? {
             Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
@@ -418,15 +494,17 @@ fn set_cur_pressure(pressure: f64, app: &mut App) {
 }
 
 fn set_pressure(app: &mut App, state: GasState) {
+    let p_aga8 = units::get_pressure(app.aga8_cur_state.p, app.units.pressure);
+    let p_gerg = units::get_pressure(app.gerg_cur_state.p, app.units.pressure);
     match state {
         GasState::Inlet => {
-            app.aga8_inlet_state.p = units::set_pressure(app.aga8_cur_state.p, app.units.pressure);
-            app.gerg_inlet_state.p = units::set_pressure(app.gerg_cur_state.p, app.units.pressure);
+            app.aga8_inlet_state.p = units::set_pressure(p_aga8, app.units.pressure);
+            app.gerg_inlet_state.p = units::set_pressure(p_gerg, app.units.pressure);
             recalculate(app);
         }
         GasState::Outlet => {
-            app.aga8_outlet_state.p = units::set_pressure(app.aga8_cur_state.p, app.units.pressure);
-            app.gerg_outlet_state.p = units::set_pressure(app.gerg_cur_state.p, app.units.pressure);
+            app.aga8_outlet_state.p = units::set_pressure(p_aga8, app.units.pressure);
+            app.gerg_outlet_state.p = units::set_pressure(p_gerg, app.units.pressure);
             recalculate(app);
         }
         _ => {}
@@ -453,15 +531,17 @@ fn set_cur_flow(flow_rate: f64, app: &mut App) {
 }
 
 fn set_temperature(app: &mut App, state: GasState) {
+    let t_aga8 = units::get_temperature(app.aga8_cur_state.t, app.units.temp);
+    let t_gerg = units::get_temperature(app.gerg_cur_state.t, app.units.temp);
     match state {
         GasState::Inlet => {
-            app.aga8_inlet_state.t = units::set_temperature(app.aga8_cur_state.t, app.units.temp);
-            app.gerg_inlet_state.t = units::set_temperature(app.gerg_cur_state.t, app.units.temp);
+            app.aga8_inlet_state.t = units::set_temperature(t_aga8, app.units.temp);
+            app.gerg_inlet_state.t = units::set_temperature(t_gerg, app.units.temp);
             recalculate(app);
         }
         GasState::Outlet => {
-            app.aga8_outlet_state.t = units::set_temperature(app.aga8_cur_state.t, app.units.temp);
-            app.gerg_outlet_state.t = units::set_temperature(app.gerg_cur_state.t, app.units.temp);
+            app.aga8_outlet_state.t = units::set_temperature(t_aga8, app.units.temp);
+            app.gerg_outlet_state.t = units::set_temperature(t_gerg, app.units.temp);
             recalculate(app);
         }
         _ => {}
