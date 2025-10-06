@@ -331,58 +331,64 @@ fn draw(frame: &mut Frame, app: &mut App) {
 fn handle_events(app: &mut App) -> std::io::Result<bool> {
     if app.input_modal_active {
         match event::read()? {
-            Event::Key(key) => match key.code {
-                KeyCode::Enter => {
-                    let input = app.input_text.lines()[0].trim();
-                    let parse = input.parse::<f64>();
-                    if parse.is_ok() {
-                        let val = parse.unwrap();
-                        if app.pressure_modal_visible {
-                            set_cur_pressure(val, app);
-                        } else if app.temperature_modal_visible {
-                            set_cur_temperature(val, app);
-                        } else if app.flow_modal_visible {
-                            set_cur_flow(val, app);
-                        }
-                    }
-                    app.input_modal_active = false;
-                    app.temperature_modal_visible = false;
-                    app.pressure_modal_visible = false;
-                    app.flow_modal_visible = false;
-                    app.input_text = TextArea::default();
-                },
-                KeyCode::Esc => {
-                    app.input_modal_active = false;
-                    app.pressure_modal_visible = false;
-                    app.temperature_modal_visible = false;
-                    app.flow_modal_visible = false;
-                    app.input_text = TextArea::default();
-                },
-                KeyCode::Backspace => {
-                    app.input_text.delete_char();
-                }
-                KeyCode::Char('u') => {
-                    if app.pressure_modal_visible {
-                        app.pressure_units_modal_visible = true;
-                        app.pressure_modal_visible = false;
-                    } else if app.temperature_modal_visible {
-                        app.temperature_units_modal_visible = true;
-                        app.temperature_modal_visible = false;
-                    } else if app.flow_modal_visible {
-                        app.flow_units_modal_visible = true;
-                        app.flow_modal_visible = false;
-                    }
-                    app.input_modal_active = false;
-                }
-                _ =>{
-                        let c = key.code.as_char();
-                        if c.is_some() {
-                            let c = c.unwrap();
-                            if c.is_numeric() || c == '.' || c == '-' {
-                                app.input_text.insert_char(c);
+            Event::Key(key) => match key.kind {
+                KeyEventKind::Press => {
+                    match key.code {
+                        KeyCode::Enter => {
+                            let input = app.input_text.lines()[0].trim();
+                            let parse = input.parse::<f64>();
+                            if parse.is_ok() {
+                                let val = parse.unwrap();
+                                if app.pressure_modal_visible {
+                                    set_cur_pressure(val, app);
+                                } else if app.temperature_modal_visible {
+                                    set_cur_temperature(val, app);
+                                } else if app.flow_modal_visible {
+                                    set_cur_flow(val, app);
+                                }
                             }
+                            app.input_modal_active = false;
+                            app.temperature_modal_visible = false;
+                            app.pressure_modal_visible = false;
+                            app.flow_modal_visible = false;
+                            app.input_text = TextArea::default();
+                        },
+                        KeyCode::Esc => {
+                            app.input_modal_active = false;
+                            app.pressure_modal_visible = false;
+                            app.temperature_modal_visible = false;
+                            app.flow_modal_visible = false;
+                            app.input_text = TextArea::default();
+                        },
+                        KeyCode::Backspace => {
+                            app.input_text.delete_char();
                         }
-                    },
+                        KeyCode::Char('u') => {
+                            if app.pressure_modal_visible {
+                                app.pressure_units_modal_visible = true;
+                                app.pressure_modal_visible = false;
+                            } else if app.temperature_modal_visible {
+                                app.temperature_units_modal_visible = true;
+                                app.temperature_modal_visible = false;
+                            } else if app.flow_modal_visible {
+                                app.flow_units_modal_visible = true;
+                                app.flow_modal_visible = false;
+                            }
+                            app.input_modal_active = false;
+                        }
+                        _ =>{
+                                let c = key.code.as_char();
+                                if c.is_some() {
+                                    let c = c.unwrap();
+                                    if c.is_numeric() || c == '.' || c == '-' {
+                                        app.input_text.insert_char(c);
+                                    }
+                                }
+                        },
+                        _ => {}
+                    }
+                }
+                _ => {}
             },
         _ => {}
     }
