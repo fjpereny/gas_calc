@@ -177,7 +177,8 @@ fn draw(frame: &mut Frame, app: &mut App) {
     let [title_area, main_area, calc_area, status_area] = vertical.areas(frame.area());
     let horizontal = Layout::horizontal([Fill(1); 3]);
     let [left_area, center_area, right_area] = horizontal.areas(main_area);
-
+    let [left_calc_area, center_calc_area, right_calc_area] = horizontal.areas(calc_area);
+    
     let gas_mode;
     if app.use_gerg2008 {
         gas_mode = "GERG-2008"
@@ -240,13 +241,25 @@ fn draw(frame: &mut Frame, app: &mut App) {
         } else {
             title_text = "Isobaric";
         }
-        let items = run_calculations(app);
-        let items_list = List::new(items)
+        let [left_items, center_items, righ_items] = run_calculations(app);
+        let items_list = List::new(left_items)
             .block(Block::bordered()
-            .title(format!("Calculations ({})", title_text))
+            .title(format!("State Change ({})", title_text))
             .style(Color::LightCyan)
         );
-        frame.render_widget(items_list, calc_area);
+        frame.render_widget(items_list, left_calc_area);
+        let items_list = List::new(center_items)
+            .block(Block::bordered()
+            .title(format!("Isentropic Calculations"))
+            .style(Color::LightCyan)
+        );
+        frame.render_widget(items_list, center_calc_area);
+        let items_list = List::new(righ_items)
+            .block(Block::bordered()
+            .title(format!("Dimensionless Data"))
+            .style(Color::LightCyan)
+        );
+        frame.render_widget(items_list, right_calc_area);
     } else {
         frame.render_widget(
             Block::bordered()
@@ -757,22 +770,22 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     jt = units::get_jt_coeff(jt, app.units.jt_coeff);
             }
             let items = vec![
-            ListItem::new(format!("{:<18}", app.gas_text)).fg(Color::White).bg(Color::Blue),
-            ListItem::new(format!("{:<18} {:.4} {}", "Pressure:", p, p_str)).fg(Color::White).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", t, t_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Density:", d, d_str)).fg(Color::White).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Molar Mass:", mm, mm_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Internal Energy:", u, energy_str)).fg(Color::White).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Enthalpy:", h, energy_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Entropy:", s, entropy_str)).fg(Color::White).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Cp:", cp, entropy_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Cv:", cv, entropy_str)).fg(Color::White).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::White).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::White).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Black).bg(Color::DarkGray),
-        ];
+                ListItem::new(format!("{:<18}", app.gas_text)).fg(Color::White).bg(Color::Blue),
+                ListItem::new(format!("{:<18} {:.4} {}", "Pressure:", p, p_str)).fg(Color::White).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", t, t_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Density:", d, d_str)).fg(Color::White).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Molar Mass:", mm, mm_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Internal Energy:", u, energy_str)).fg(Color::White).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Enthalpy:", h, energy_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Entropy:", s, entropy_str)).fg(Color::White).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Cp:", cp, entropy_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Cv:", cv, entropy_str)).fg(Color::White).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::White).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::White).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Black).bg(Color::DarkGray),
+            ];
                 return items
             },
             GasState::Inlet => {
@@ -830,22 +843,22 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     jt = units::get_jt_coeff(jt, app.units.jt_coeff);
             }
             let items = vec![
-            ListItem::new(format!("{:<18}", app.gas_text)).fg(Color::White).bg(Color::Blue),
-            ListItem::new(format!("{:<18} {:.4} {}", "Pressure:", p, p_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", t, t_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Density:", d, d_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Molar Mass:", mm, mm_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Internal Energy:", u, energy_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Enthalpy:", h, energy_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Entropy:", s, entropy_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Cp:", cp, entropy_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Cv:", cv, entropy_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::White).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Green).bg(Color::Black),
-        ];
+                ListItem::new(format!("{:<18}", app.gas_text)).fg(Color::White).bg(Color::Blue),
+                ListItem::new(format!("{:<18} {:.4} {}", "Pressure:", p, p_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", t, t_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Density:", d, d_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Molar Mass:", mm, mm_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Internal Energy:", u, energy_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Enthalpy:", h, energy_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Entropy:", s, entropy_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Cp:", cp, entropy_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Cv:", cv, entropy_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Black).bg(Color::DarkGray),
+            ];
                 return items
             },
             GasState::Outlet => {
@@ -903,22 +916,22 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                     jt = units::get_jt_coeff(jt, app.units.jt_coeff);
             }
             let items = vec![
-            ListItem::new(format!("{:<18}", app.gas_text)).fg(Color::White).bg(Color::Blue),
-            ListItem::new(format!("{:<18} {:.4} {}", "Pressure:", p, p_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", t, t_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Density:", d, d_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Molar Mass:", mm, mm_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Internal Energy:", u, energy_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Enthalpy:", h, energy_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Entropy:", s, entropy_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Cp:", cp, entropy_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Cv:", cv, entropy_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::White).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Green).bg(Color::Black),
-            ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Black).bg(Color::DarkGray),
-            ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Green).bg(Color::Black),
-        ];
+                ListItem::new(format!("{:<18}", app.gas_text)).fg(Color::White).bg(Color::Blue),
+                ListItem::new(format!("{:<18} {:.4} {}", "Pressure:", p, p_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Temperature:", t, t_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Density:", d, d_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Molar Mass:", mm, mm_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Internal Energy:", u, energy_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Enthalpy:", h, energy_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Entropy:", s, entropy_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Cp:", cp, entropy_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Cv:", cv, entropy_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Black).bg(Color::DarkGray),
+                ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Black).bg(Color::DarkGray),
+            ];
                 return items
             }
         }

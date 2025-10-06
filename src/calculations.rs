@@ -85,21 +85,33 @@ pub fn isentropic_eff(app: &mut App, hs: f64) -> f64 {
         if pr >= 1.0 {
             let hd = app.gerg_outlet_state.h - app.gerg_inlet_state.h;
             let hds = hs - app.gerg_inlet_state.h;
+            if hd == 0.0 {
+                return 0.0
+            }
             hds / hd
         } else {
             let hd = app.gerg_inlet_state.h - app.gerg_outlet_state.h;
             let hds = app.gerg_inlet_state.h - hs;
+            if hds == 0.0 {
+                return 0.0
+            }
             hd / hds
         }
     } else {
         let pr = app.aga8_outlet_state.p / app.aga8_inlet_state.p;
         if pr >= 1.0 {
             let hd = app.aga8_outlet_state.h - app.aga8_inlet_state.h;
+            if hd == 0.0 {
+                return 0.0
+            }
             let hds = hs - app.aga8_inlet_state.h;
             hds / hd
         } else {
             let hd = app.aga8_inlet_state.h - app.aga8_outlet_state.h;
             let hds = app.aga8_inlet_state.h - hs;
+            if hds == 0.0 {
+                return 0.0
+            }
             hd / hds
         }
     }
@@ -162,7 +174,7 @@ pub fn isentropic_enthalpy(app: &mut App, ts: f64) -> f64 {
         gas_state.properties();
         hs = gas_state.h;
     } else {
-        let mut gas_state = Detail::default();
+        let mut gas_state = Detail::new();
         gas_state.set_composition(&app.gas_comp);
         gas_state.p = app.aga8_outlet_state.p;
         gas_state.t = ts;
@@ -185,57 +197,57 @@ pub fn isentropic_enthalpy_change(app: &mut App, hs: f64) -> f64 {
     hds
 }
 
-pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
+pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
     let pressure_ratio = pressure_ratio(app);
     let temperature_ratio = temperature_ratio(app);
     let hd = enthalpy_change(app);
     let ts = isentropic_temp(app);
     let hs = isentropic_enthalpy(app, ts);
     let hds = isentropic_enthalpy_change(app, hs);
+    let isentropic_efficiency = isentropic_eff(app, hs);
 
-    let items = vec![   
+    let efficiency_color;
+        if isentropic_efficiency > 1.0 || isentropic_efficiency < 0.0 {
+            efficiency_color = Color::Red
+        } else {
+            efficiency_color = Color::LightCyan
+        }
+
+    let left_items = vec![   
         ListItem::new(
-            format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
+            format!("{:<18} {:.3} {:>}", 
                 "Press Ratio:", pressure_ratio, "[]",
-                "Isentropic Eff:", isentropic_eff(app, hs), "[]",
-                "Wheel Dia:", app.wheel_diameter, "m",
             )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
+            format!("{:<18} {:.3} {:>}", 
                 "Temp Ratio:", temperature_ratio, "[]",
-                "Isen Enthalpy Hs:", hs, app.units.energy.print_unit(),
-                "Wheel Speed:", app.rpm, "RPM",
             )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
+            format!("{:<18} {:.3} {:>}", 
                 "Temp Change:", temperature_change(app), app.units.temp.print_unit(),
-                "Isen Temp Ts:", get_temperature(ts, app.units.temp), app.units.temp.print_unit(),
-                "Tip Speed:", tip_speed(app), "m/s",
             )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {:18} {} {:.4} {:18} {:15} {:.4} {}", 
+            format!("{:<18} {:.3} {:>}", 
                 "Enthalpy Change:", hd, app.units.energy.print_unit(),
-                "Isen Enthalpy Change:", hds, app.units.energy.print_unit(),
-                "Q/N (Flow/RPM):", app.flow_val / app.rpm, "TBC",
             )
         )
         .fg(Color::LightCyan)
         .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {:18}", 
+            format!("{:<18} {:.3} {:>}", 
                 "Entropy Change:", entropy_change(app), app.units.entropy.print_unit(),
             )
         )
@@ -243,25 +255,81 @@ pub fn run_calculations(app: &mut App) -> Vec<ListItem<'_>> {
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {:18}",  
+            format!("{:<18} {:.3} {:>}",  
                 "Ave Cp/Cv:", ave_cp_cv(app), "[]",
+            )
+        )
+            .fg(Color::LightCyan)
+            .bg(Color::Black),
+    ];
+
+    let center_items = vec![   
+        ListItem::new(
+            format!("{:<18} {:.3} {:>}", 
+                "Temperature Ts:", ts, app.units.temp.print_unit(),
             )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.4} {}", 
-            "Flow Q:", app.flow_val, "kg/s")
+            format!("{:<18} {:.3} {:>}", 
+                "Enthalpy Hs:", hs, app.units.energy.print_unit(),
+            )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
+
         ListItem::new(
-            format!("{:<18} {:.4} {}", 
-            "Work:", work(app), "kJ/s")
+            format!("{:<18} {:.3} {:>}", 
+                "Efficiency:", isentropic_efficiency, "[]",
+            )
+        )
+            .fg(efficiency_color)
+            .bg(Color::Black),
+
+        ListItem::new(
+            format!("{:<18} {:.3} {:>}", 
+                "Enthalpy Change:", hds, app.units.energy.print_unit(),
+            )
+        )
+        .fg(Color::LightCyan)
+        .bg(Color::Black),
+    ];
+
+    let right_items = vec![   
+        ListItem::new(
+            format!("{:<18} {:.3} {:>}", 
+                "Temperature Ts:", ts, app.units.temp.print_unit(),
+            )
         )
             .fg(Color::LightCyan)
+            .bg(Color::Black),
+
+        ListItem::new(
+            format!("{:<18} {:.3} {:>}", 
+                "Enthalpy Hs:", hs, app.units.energy.print_unit(),
+            )
+        )
+            .fg(Color::LightCyan)
+            .bg(Color::Black),
+
+            ListItem::new(
+                format!("{:<18} {:.3} {:>}", 
+                "Enthalpy Change:", hds, app.units.energy.print_unit(),
+            )
+        )
+        .fg(Color::LightCyan)
+        .bg(Color::Black),
+
+        ListItem::new(
+            format!("{:<18} {:.3} {:>}", 
+                "Efficiency:", isentropic_efficiency, "[]",
+            )
+        )
+            .fg(efficiency_color)
             .bg(Color::Black),
     ];
-    items
+    
+    [left_items, center_items, right_items]
 }
