@@ -1,3 +1,5 @@
+use aga8::{composition::Composition, gerg2008};
+
 
 pub struct Units {
     pub pressure: Pressure,
@@ -19,7 +21,7 @@ impl Default for Units {
             entropy: Entropy::BTU_lbm_R,
             speed: Speed::ft_s,
             jt_coeff: JT_Coeff::R_PSI,
-            flow: Flow::scfm_60,
+            flow: Flow::scfm,
         }
     }
 }
@@ -152,10 +154,8 @@ pub enum Flow {
     lbm_m,
     lbm_h,
     Nm3_h,
-    scfm_60,
-    scfm_70,
-    scfh_60,
-    scfh_70
+    scfm,
+    scfh,
 }
 impl PrintUnit for Flow {
     fn print_unit(&self) -> &'static str{
@@ -167,10 +167,8 @@ impl PrintUnit for Flow {
            Flow::lbm_m => "lbm/min",
            Flow::lbm_h => "lbm/hr",
            Flow::Nm3_h => "Nm^3/hr",
-           Flow::scfm_60 => "scfm (60F)",
-           Flow::scfm_70 => "scfm (70F)",
-           Flow::scfh_60 => "scfh (60F)",
-           Flow::scfh_70 => "scfh (70F)",
+           Flow::scfm => "scfm",
+           Flow::scfh => "scfh",
         }
     }
 }
@@ -295,6 +293,281 @@ pub fn set_jt_coeff(jt_coeff:f64, unit: JT_Coeff) -> f64 {
     }
 }
 
-pub fn get_flow(flow_val: f64, unit: Flow) {
+pub fn get_flow(flow_kg_s: f64, unit: Flow, gas_comp: &Composition, stp_60: bool, use_gerg2008: bool) -> f64 {
+    match unit {
+        Flow::kg_s => flow_kg_s,
+        Flow::kg_m => flow_kg_s * 60.0,
+        Flow::kg_h => flow_kg_s * 3600.0,
+        Flow::lbm_s => flow_kg_s * 2.20462,
+        Flow::lbm_m => flow_kg_s * 2.20462 * 60.0,
+        Flow::lbm_h => flow_kg_s * 2.20462 * 3600.0,
+        Flow::Nm3_h => {
+            let kg_h = flow_kg_s * 3600.0;
+            // Calculate density at STP
+            let density_kg_m3;
+            if use_gerg2008 {
+                let mut gas_state = gerg2008::Gerg2008::new();
+                gas_state.set_composition(gas_comp);
+                gas_state.p = 101.325;
+                gas_state.t = 273.15;
+                gas_state.density(0);
+                gas_state.properties();
+                density_kg_m3 = gas_state.mm * gas_state.d;
+            } else {
+                let mut gas_state = aga8::detail::Detail::new();
+                gas_state.set_composition(gas_comp);
+                gas_state.p = 101.325;
+                gas_state.t = 273.15;
+                gas_state.density();
+                gas_state.properties();
+                density_kg_m3 = gas_state.mm * gas_state.d;
+            }
+            kg_h / density_kg_m3
+        },
+        Flow::scfm => {
+            if stp_60 {
+                let kg_m = flow_kg_s * 60.0;
+                // Calculate density at STP
+                let density_kg_m3;
+                if use_gerg2008 {
+                    let mut gas_state = gerg2008::Gerg2008::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 288.706;
+                    gas_state.density(0);
+                    gas_state.properties();
+                    density_kg_m3 = gas_state.mm * gas_state.d;
+                } else {
+                    let mut gas_state = aga8::detail::Detail::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 288.706;
+                    gas_state.density();
+                    gas_state.properties();
+                    density_kg_m3 = gas_state.mm * gas_state.d;
+                }
+                let m3_min = kg_m / density_kg_m3;
+                m3_min * 35.3147
+            } else {
+                let kg_m = flow_kg_s * 60.0;
+                // Calculate density at STP
+                let density_kg_m3;
+                if use_gerg2008 {
+                    let mut gas_state = gerg2008::Gerg2008::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 294.261;
+                    gas_state.density(0);
+                    gas_state.properties();
+                    density_kg_m3 = gas_state.mm * gas_state.d;
+                } else {
+                    let mut gas_state = aga8::detail::Detail::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 294.261;
+                    gas_state.density();
+                    gas_state.properties();
+                    density_kg_m3 = gas_state.mm * gas_state.d;
+                }
+                let m3_min = kg_m / density_kg_m3;
+                m3_min * 35.3147
+            }
+        },
+        Flow::scfh => {
+            if stp_60 {
+                let kg_hr = flow_kg_s * 3600.0;
+                // Calculate density at STP
+                let density_kg_m3;
+                if use_gerg2008 {
+                    let mut gas_state = gerg2008::Gerg2008::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 288.706;
+                    gas_state.density(0);
+                    gas_state.properties();
+                    density_kg_m3 = gas_state.mm * gas_state.d;
+                } else {
+                    let mut gas_state = aga8::detail::Detail::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 288.706;
+                    gas_state.density();
+                    gas_state.properties();
+                    density_kg_m3 = gas_state.mm * gas_state.d;
+                }
+                let m3_hr = kg_hr / density_kg_m3;
+                m3_hr * 35.3147
+            } else {
+                let kg_hr = flow_kg_s * 3600.0;
+                // Calculate density at STP
+                let density_kg_m3;
+                if use_gerg2008 {
+                    let mut gas_state = gerg2008::Gerg2008::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 294.261;
+                    gas_state.density(0);
+                    gas_state.properties();
+                    density_kg_m3 = gas_state.mm * gas_state.d;
+                } else {
+                    let mut gas_state = aga8::detail::Detail::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 294.261;
+                    gas_state.density();
+                    gas_state.properties();
+                    density_kg_m3 = gas_state.mm * gas_state.d;
+                }
+                let m3_hr = kg_hr / density_kg_m3;
+                m3_hr * 35.3147
+            }
+        },
+    }
+}
 
+pub fn set_flow(flow: f64, unit: Flow, gas_comp: &Composition, stp_60: bool, use_gerg2008: bool) -> f64 {
+    match unit {
+        Flow::kg_s => flow,
+        Flow::kg_m => flow / 60.0,
+        Flow::kg_h => flow / 3600.0,
+        Flow::lbm_s => flow / 2.20462,
+        Flow::lbm_m => flow / 2.20462 / 60.0,
+        Flow::lbm_h => flow / 2.20462 / 3600.0,
+        Flow::Nm3_h => {
+            let Nm3_s = flow / 60.0;
+            let kg_s;
+            // Calculate density at STP
+            if use_gerg2008 {
+                let mut gas_state = gerg2008::Gerg2008::new();
+                gas_state.set_composition(gas_comp);
+                gas_state.p = 101.325;
+                gas_state.t = 273.15;
+                gas_state.density(0);
+                gas_state.properties();
+                let density_kg_m3 = gas_state.mm * gas_state.d;
+                kg_s = density_kg_m3 * Nm3_s;
+
+            } else {
+                let mut gas_state = aga8::detail::Detail::new();
+                gas_state.set_composition(gas_comp);
+                gas_state.p = 101.325;
+                gas_state.t = 273.15;
+                gas_state.density();
+                gas_state.properties();
+                let density_kg_m3 = gas_state.mm * gas_state.d;
+                kg_s = density_kg_m3 * Nm3_s;
+            }
+            kg_s
+        },
+        Flow::scfm => {
+            if stp_60 {
+                let scfs = flow / 60.0;
+                // Calculate density at STP
+                let kg_s;
+                if use_gerg2008 {
+                    let mut gas_state = gerg2008::Gerg2008::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 288.706;
+                    gas_state.density(0);
+                    gas_state.properties();
+                    let density_kg_m3 = gas_state.mm * gas_state.d;
+                    let density_kg_ft3 = density_kg_m3 / density_kg_m3;
+                    kg_s = density_kg_ft3 * scfs;
+                } else {
+                    let mut gas_state = aga8::detail::Detail::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 288.706;
+                    gas_state.density();
+                    gas_state.properties();
+                    let density_kg_m3 = gas_state.mm * gas_state.d;
+                    let density_kg_ft3 = density_kg_m3 / density_kg_m3;
+                    kg_s = density_kg_ft3 * scfs;
+                }
+                kg_s
+            } else {
+                let scfs = flow / 60.0;
+                // Calculate density at STP
+                let kg_s;
+                if use_gerg2008 {
+                    let mut gas_state = gerg2008::Gerg2008::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 294.261;
+                    gas_state.density(0);
+                    gas_state.properties();
+                    let density_kg_m3 = gas_state.mm * gas_state.d;
+                    let density_kg_ft3 = density_kg_m3 / density_kg_m3;
+                    kg_s = density_kg_ft3 * scfs;
+                } else {
+                    let mut gas_state = aga8::detail::Detail::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 294.261;
+                    gas_state.density();
+                    gas_state.properties();
+                    let density_kg_m3 = gas_state.mm * gas_state.d;
+                    let density_kg_ft3 = density_kg_m3 / density_kg_m3;
+                    kg_s = density_kg_ft3 * scfs;
+                }
+                kg_s
+            }
+        },
+        Flow::scfh => {
+            if stp_60 {
+                let scfs = flow / 3600.0;
+                // Calculate density at STP
+                let kg_s;
+                if use_gerg2008 {
+                    let mut gas_state = gerg2008::Gerg2008::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 288.706;
+                    gas_state.density(0);
+                    gas_state.properties();
+                    let density_kg_m3 = gas_state.mm * gas_state.d;
+                    let density_kg_ft3 = density_kg_m3 / density_kg_m3;
+                    kg_s = density_kg_ft3 * scfs;
+                } else {
+                    let mut gas_state = aga8::detail::Detail::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 288.706;
+                    gas_state.density();
+                    gas_state.properties();
+                    let density_kg_m3 = gas_state.mm * gas_state.d;
+                    let density_kg_ft3 = density_kg_m3 / density_kg_m3;
+                    kg_s = density_kg_ft3 * scfs;
+                }
+                kg_s
+            } else {
+                let scfs = flow / 60.0;
+                // Calculate density at STP
+                let kg_s;
+                if use_gerg2008 {
+                    let mut gas_state = gerg2008::Gerg2008::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 294.261;
+                    gas_state.density(0);
+                    gas_state.properties();
+                    let density_kg_m3 = gas_state.mm * gas_state.d;
+                    let density_kg_ft3 = density_kg_m3 / density_kg_m3;
+                    kg_s = density_kg_ft3 * scfs;
+                } else {
+                    let mut gas_state = aga8::detail::Detail::new();
+                    gas_state.set_composition(gas_comp);
+                    gas_state.p = 101.325;
+                    gas_state.t = 294.261;
+                    gas_state.density();
+                    gas_state.properties();
+                    let density_kg_m3 = gas_state.mm * gas_state.d;
+                    let density_kg_ft3 = density_kg_m3 / density_kg_m3;
+                    kg_s = density_kg_ft3 * scfs;
+                }
+                kg_s
+            }
+        },
+    }
 }

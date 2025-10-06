@@ -193,6 +193,13 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
     let hs = isentropic_enthalpy(app, ts);
     let hds = isentropic_enthalpy_change(app, hs);
     let isentropic_efficiency = isentropic_eff(app, hs);
+    let flow = units::get_flow(
+        app.flow_val, 
+        app.units.flow, 
+        &app.gas_comp, 
+        app.stp_60_F, 
+        app.use_gerg2008
+    );
 
     let efficiency_color;
         if isentropic_efficiency > 1.0 || isentropic_efficiency < 0.0 {
@@ -286,7 +293,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
 
         ListItem::new(
             format!("{:<18} {:.4} {:>}", 
-                "Flow Rate:", app.flow_val, app.units.flow.print_unit(),
+                "Flow Rate:", flow, app.units.flow.print_unit(),
             )
         )
             .fg(Color::Red)

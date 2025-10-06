@@ -331,71 +331,65 @@ fn draw(frame: &mut Frame, app: &mut App) {
 fn handle_events(app: &mut App) -> std::io::Result<bool> {
     if app.input_modal_active {
         match event::read()? {
-            Event::Key(key) => match key.kind {
-                KeyEventKind::Press => {
-                    match key.code {
-                        KeyCode::Enter => {
-                            let input = app.input_text.lines()[0].trim();
-                            let parse = input.parse::<f64>();
-                            if parse.is_ok() {
-                                let val = parse.unwrap();
-                                if app.pressure_modal_visible {
-                                    set_cur_pressure(val, app);
-                                } else if app.temperature_modal_visible {
-                                    set_cur_temperature(val, app);
-                                } else if app.flow_modal_visible {
-                                    set_cur_flow(val, app);
-                                }
-                            }
-                            app.input_modal_active = false;
-                            app.temperature_modal_visible = false;
-                            app.pressure_modal_visible = false;
-                            app.flow_modal_visible = false;
-                            app.input_text = TextArea::default();
-                        },
-                        KeyCode::Esc => {
-                            app.input_modal_active = false;
-                            app.pressure_modal_visible = false;
-                            app.temperature_modal_visible = false;
-                            app.flow_modal_visible = false;
-                            app.input_text = TextArea::default();
-                        },
-                        KeyCode::Backspace => {
-                            app.input_text.delete_char();
-                        }
-                        KeyCode::Char('u') => {
-                            if app.pressure_modal_visible {
-                                app.pressure_units_modal_visible = true;
-                                app.pressure_modal_visible = false;
-                            } else if app.temperature_modal_visible {
-                                app.temperature_units_modal_visible = true;
-                                app.temperature_modal_visible = false;
-                            } else if app.flow_modal_visible {
-                                app.flow_units_modal_visible = true;
-                                app.flow_modal_visible = false;
-                            }
-                            app.input_modal_active = false;
-                        }
-                        _ =>{
-                                let c = key.code.as_char();
-                                if c.is_some() {
-                                    let c = c.unwrap();
-                                    if c.is_numeric() || c == '.' || c == '-' {
-                                        app.input_text.insert_char(c);
-                                    }
-                                }
-                        },
-                        _ => {}
+        Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
+            KeyCode::Enter => {
+                let input = app.input_text.lines()[0].trim();
+                let parse = input.parse::<f64>();
+                if parse.is_ok() {
+                    let val = parse.unwrap();
+                    if app.pressure_modal_visible {
+                        set_cur_pressure(val, app);
+                    } else if app.temperature_modal_visible {
+                        set_cur_temperature(val, app);
+                    } else if app.flow_modal_visible {
+                        set_cur_flow(val, app);
                     }
                 }
-                _ => {}
+                app.input_modal_active = false;
+                app.temperature_modal_visible = false;
+                app.pressure_modal_visible = false;
+                app.flow_modal_visible = false;
+                app.input_text = TextArea::default();
             },
-        _ => {}
-    }
-    Ok(false)
+            KeyCode::Esc => {
+                app.input_modal_active = false;
+                app.pressure_modal_visible = false;
+                app.temperature_modal_visible = false;
+                app.flow_modal_visible = false;
+                app.input_text = TextArea::default();
+            },
+            KeyCode::Backspace => {
+                app.input_text.delete_char();
+            },
+            KeyCode::Char('u') => {
+                if app.pressure_modal_visible {
+                    app.pressure_units_modal_visible = true;
+                    app.pressure_modal_visible = false;
+                } else if app.temperature_modal_visible {
+                    app.temperature_units_modal_visible = true;
+                    app.temperature_modal_visible = false;
+                } else if app.flow_modal_visible {
+                    app.flow_units_modal_visible = true;
+                    app.flow_modal_visible = false;
+                }
+                app.input_modal_active = false;
+            },
+            _ =>{
+                    let c = key.code.as_char();
+                    if c.is_some() {
+                        let c = c.unwrap();
+                        if c.is_numeric() || c == '.' || c == '-' {
+                            app.input_text.insert_char(c);
+                        }
+                    }
+            },
+            },
+            _ => {}
+        }
+        Ok(false)
     } else if app.gas_modal_visible {
         match event::read()? {
-            Event::Key(key) => match key.code {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Enter => {
                     app.gas_modal_visible = false;
                 },
@@ -453,7 +447,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         Ok(false)
     } else if app.select_unit_modal_visible {
         match event::read()? {
-            Event::Key(key) => match key.code {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code{
                 KeyCode::Enter => {
                     app.select_unit_modal_visible = false;
                 },
@@ -495,7 +489,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         Ok(false)
     } else if app.pressure_units_modal_visible {
         match event::read()? {
-            Event::Key(key) => match key.code {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Enter => {
                     app.pressure_units_modal_visible = false;
                 },
@@ -521,7 +515,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         Ok(false)
     } else if app.temperature_units_modal_visible {
         match event::read()? {
-            Event::Key(key) => match key.code {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Enter => {
                     app.temperature_units_modal_visible = false;
                 },
@@ -551,7 +545,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         Ok(false)
     } else if app.density_units_modal_visible {
         match event::read()? {
-            Event::Key(key) => match key.code {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Enter => {
                     app.density_units_modal_visible = false;
                 },
@@ -577,7 +571,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         Ok(false)
     } else if app.energy_units_modal_visible {
         match event::read()? {
-            Event::Key(key) => match key.code {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Enter => {
                     app.energy_units_modal_visible = false;
                 },
@@ -603,7 +597,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         Ok(false)
     } else if app.entropy_units_modal_visible {
         match event::read()? {
-            Event::Key(key) => match key.code {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Enter => {
                     app.entropy_units_modal_visible = false;
                 },
@@ -629,7 +623,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         Ok(false)
     } else if app.speed_units_modal_visible {
         match event::read()? {
-            Event::Key(key) => match key.code {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Enter => {
                     app.speed_units_modal_visible = false;
                 },
@@ -643,28 +637,6 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                 KeyCode::Char('2') => {
                     app.units.speed = units::Speed::ft_s;
                     app.speed_units_modal_visible = false;
-                },
-                _ =>{},
-            },
-            _ => {}
-        }
-        Ok(false)
-    } else if app.flow_modal_visible {
-        match event::read()? {
-            Event::Key(key) => match key.code {
-                KeyCode::Enter => {
-                    app.flow_modal_visible = false;
-                },
-                KeyCode::Esc => {
-                    app.flow_modal_visible = false;
-                },
-                KeyCode::Char('1') => {
-                    app.units.speed = units::Speed::m_s;
-                    app.flow_modal_visible = false;
-                },
-                KeyCode::Char('2') => {
-                    app.units.speed = units::Speed::ft_s;
-                    app.flow_modal_visible = false;
                 },
                 _ =>{},
             },
@@ -673,7 +645,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
         Ok(false)
     } else if app.flow_units_modal_visible {
         match event::read()? {
-            Event::Key(key) => match key.code {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Enter => {
                     app.flow_units_modal_visible = false;
                 },
@@ -689,7 +661,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                     app.flow_units_modal_visible = false;
                 },
                 KeyCode::Char('3') => {
-                    app.units.flow = units::Flow::kg_m;
+                    app.units.flow = units::Flow::kg_h;
                     app.flow_units_modal_visible = false;
                 },
                 KeyCode::Char('4') => {
@@ -709,19 +681,11 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                     app.flow_units_modal_visible = false;
                 },
                 KeyCode::Char('8') => {
-                    if app.stp_60_F {
-                        app.units.flow = units::Flow::scfm_60;
-                    } else {
-                        app.units.flow = units::Flow::scfm_70
-                    }
+                    app.units.flow = units::Flow::scfm;
                     app.flow_units_modal_visible = false;
                 },
                 KeyCode::Char('9') => {
-                    if app.stp_60_F {
-                        app.units.flow = units::Flow::scfh_60;
-                    } else {
-                        app.units.flow = units::Flow::scfh_70
-                    }
+                    app.units.flow = units::Flow::scfh;
                     app.flow_units_modal_visible = false;
                 },
                 _ =>{},
@@ -809,7 +773,14 @@ fn set_cur_temperature(temperature: f64, app: &mut App) {
 }
 
 fn set_cur_flow(flow_rate: f64, app: &mut App) {
-    app.flow_val = flow_rate;
+    let flow_val = units::set_flow(
+        flow_rate, 
+        app.units.flow, 
+        &app.gas_comp, 
+        app.stp_60_F, 
+        app.use_gerg2008
+    );
+    app.flow_val = flow_val;
 }
 
 fn set_temperature(app: &mut App, state: GasState) {
