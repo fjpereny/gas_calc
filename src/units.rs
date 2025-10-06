@@ -7,17 +7,19 @@ pub struct Units {
     pub entropy: Entropy,
     pub speed: Speed,
     pub jt_coeff: JT_Coeff,
+    pub flow: Flow,
 }
 impl Default for Units {
     fn default() -> Self {
         Units {
-            pressure: Pressure::kPa,
-            temp: Temperature::K,
-            density: Density::mol_l,
-            energy: Energy::J_mol,
-            entropy: Entropy::J_mol_K,
-            speed: Speed::m_s,
-            jt_coeff: JT_Coeff::K_kPa,
+            pressure: Pressure::PSI,
+            temp: Temperature::F,
+            density: Density::lbm_ft3,
+            energy: Energy::BTU_lbm,
+            entropy: Entropy::BTU_lbm_R,
+            speed: Speed::ft_s,
+            jt_coeff: JT_Coeff::R_PSI,
+            flow: Flow::scfm_60,
         }
     }
 }
@@ -71,8 +73,8 @@ impl PrintUnit for Density {
     fn print_unit(&self) -> &'static str{
         match self {
            Density::mol_l => "mol/l",
-           Density::kg_m3 => "kg/m3",
-           Density::lbm_ft3 => "lbm/ft3",
+           Density::kg_m3 => "kg/m^3",
+           Density::lbm_ft3 => "lbm/ft^3",
         }
     }
 }
@@ -137,6 +139,38 @@ impl PrintUnit for JT_Coeff {
            JT_Coeff::K_kPa => "K/kPa",
            JT_Coeff::K_bar => "K/Bar",
            JT_Coeff::R_PSI => "R/PSI",
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum Flow {
+    kg_s,
+    kg_m,
+    kg_h,
+    lbm_s,
+    lbm_m,
+    lbm_h,
+    Nm3_h,
+    scfm_60,
+    scfm_70,
+    scfh_60,
+    scfh_70
+}
+impl PrintUnit for Flow {
+    fn print_unit(&self) -> &'static str{
+        match self {
+           Flow::kg_s => "kg/s",
+           Flow::kg_m => "kg/min",
+           Flow::kg_h => "kg/hr",
+           Flow::lbm_s => "lbm/s",
+           Flow::lbm_m => "lbm/min",
+           Flow::lbm_h => "lbm/hr",
+           Flow::Nm3_h => "Nm^3/hr",
+           Flow::scfm_60 => "scfm (60F)",
+           Flow::scfm_70 => "scfm (70F)",
+           Flow::scfh_60 => "scfh (60F)",
+           Flow::scfh_70 => "scfh (70F)",
         }
     }
 }
@@ -259,4 +293,8 @@ pub fn set_jt_coeff(jt_coeff:f64, unit: JT_Coeff) -> f64 {
         JT_Coeff::K_bar => jt_coeff / 0.01,
         JT_Coeff::R_PSI => jt_coeff / 9.0 * 5.0 * 0.145038,
     }
+}
+
+pub fn get_flow(flow_val: f64, unit: Flow) {
+
 }

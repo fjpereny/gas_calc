@@ -48,8 +48,14 @@ pub struct App {
     pub temperature_modal_visible: bool,
     pub gas_modal_visible: bool,
     pub flow_modal_visible: bool,
+    pub select_unit_modal_visible: bool,
     pub pressure_units_modal_visible: bool,
     pub temperature_units_modal_visible: bool,
+    pub density_units_modal_visible: bool,
+    pub energy_units_modal_visible: bool,
+    pub entropy_units_modal_visible: bool,
+    pub speed_units_modal_visible: bool,
+    pub flow_units_modal_visible: bool,
     pub aga8_cur_state: Detail,
     pub gerg_cur_state: Gerg2008,
     pub aga8_inlet_state: Detail,
@@ -67,6 +73,7 @@ pub struct App {
     pub rpm: f64,
     pub wheel_diameter: f64,
     pub gas_text: &'static str,
+    pub stp_60_F: bool,
 }
 
 impl Default for App {
@@ -76,8 +83,14 @@ impl Default for App {
             temperature_modal_visible: false,
             gas_modal_visible: false,
             flow_modal_visible: false,
+            select_unit_modal_visible: false,
             pressure_units_modal_visible: false,
             temperature_units_modal_visible: false,
+            density_units_modal_visible: false,
+            energy_units_modal_visible: false,
+            entropy_units_modal_visible: false,
+            speed_units_modal_visible: false,
+            flow_units_modal_visible: false,
             aga8_cur_state: Detail::new(),
             gerg_cur_state: Gerg2008::new(), 
             aga8_inlet_state: Detail::new(),
@@ -91,10 +104,11 @@ impl Default for App {
             show_outlet_state: false,
             input_text: TextArea::default(),
             input_modal_active: false,
-            flow_val: 100.0,
-            rpm: 36_000.0,
-            wheel_diameter: 1.0,
+            flow_val: 0.0,
+            rpm: 0.0,
+            wheel_diameter: 0.0,
             gas_text: "Air",
+            stp_60_F: true,
         }
     }
 }
@@ -108,19 +122,24 @@ fn app_setup(app: &mut App) {
     app.aga8_outlet_state.set_composition(&app.gas_comp);
     app.gerg_outlet_state.set_composition(&app.gas_comp);
 
-    app.aga8_cur_state.p = 100.0;
-    app.gerg_cur_state.p = 100.0;
-    app.aga8_inlet_state.p = 100.0;
-    app.gerg_inlet_state.p = 100.0;
-    app.aga8_outlet_state.p = 100.0;
-    app.gerg_outlet_state.p = 100.0;
+    let p = 14.696;
+    let p = units::set_pressure(p, units::Pressure::PSI);
+    let t = 60.0;
+    let t = units::set_temperature(t, units::Temperature::F);
 
-    app.aga8_cur_state.t = 273.15;
-    app.gerg_cur_state.t = 273.15;
-    app.aga8_inlet_state.t = 273.15;
-    app.gerg_inlet_state.t = 273.15;
-    app.aga8_outlet_state.t = 273.15;
-    app.gerg_outlet_state.t = 273.15;
+    app.aga8_cur_state.p = p;
+    app.gerg_cur_state.p = p;
+    app.aga8_inlet_state.p = p;
+    app.gerg_inlet_state.p = p;
+    app.aga8_outlet_state.p = p;
+    app.gerg_outlet_state.p = p;
+
+    app.aga8_cur_state.t = t;
+    app.gerg_cur_state.t = t;
+    app.aga8_inlet_state.t = t;
+    app.gerg_inlet_state.t = t;
+    app.aga8_outlet_state.t = t;
+    app.gerg_outlet_state.t = t;
 
     app.aga8_cur_state.density();
     app.gerg_cur_state.density(0);
@@ -166,7 +185,7 @@ fn hotkey_menu(app: &mut App) -> Paragraph<'static> {
         mode_text = "GERG-2008"
     }
     Paragraph::new(
-        format!("Esc-Settings\tP-Pressure\tT-Temperature\tI-Set Inlet\tO- Set Outlet\tC-Clear\tM-Switch AGA8/GERG")
+        format!("Esc-Settings\tP-Pressure\tT-Temperature\tU-Change Units\tI-Set Inlet\tO- Set Outlet\tC-Clear\tM-Switch AGA8/GERG")
     )
 }
 
@@ -211,7 +230,7 @@ fn draw(frame: &mut Frame, app: &mut App) {
     frame.render_widget(items_list, center_area);
 } else {
     frame.render_widget(
-        Block::bordered().title("Inlet State (not defined)")
+        Block::bordered().title("Inlet State (press I to set)")
         .style(Color::Red), 
         center_area);
     }
@@ -226,7 +245,7 @@ fn draw(frame: &mut Frame, app: &mut App) {
         frame.render_widget(items_list, right_area);
     } else {
         frame.render_widget(
-            Block::bordered().title("Outlet State (not defined)")
+            Block::bordered().title("Outlet State (press O to set)")
             .style(Color::Red), 
             right_area);
     }
@@ -268,13 +287,34 @@ fn draw(frame: &mut Frame, app: &mut App) {
         );
     }
 
+    if app.select_unit_modal_visible {
+        modals::select_units_modal(app, frame, main_area);
+    }
     if app.pressure_modal_visible { 
         app.input_modal_active = true;
         modals::pressure_modal(app, frame, main_area);
     }
+    if app.pressure_units_modal_visible {
+        modals::pressure_units_modal(app, frame, main_area);
+    }
     if app.temperature_modal_visible { 
         app.input_modal_active = true;
         modals::temperature_modal(app, frame, main_area);
+    }
+    if app.temperature_units_modal_visible {
+        modals::temperature_units_modal(app, frame, main_area);
+    }
+    if app.density_units_modal_visible { 
+        modals::density_units_modal(app, frame, main_area);
+    }
+    if app.energy_units_modal_visible { 
+        modals::energy_units_modal(app, frame, main_area);
+    }
+    if app.entropy_units_modal_visible { 
+        modals::entropy_units_modal(app, frame, main_area);
+    }
+    if app.speed_units_modal_visible { 
+        modals::speed_units_modal(app, frame, main_area);
     }
     if app.gas_modal_visible {
         modals::gas_modal(app, frame, main_area);
@@ -283,11 +323,8 @@ fn draw(frame: &mut Frame, app: &mut App) {
         app.input_modal_active = true;
         modals::flow_modal(app, frame, main_area);
     }
-    if app.pressure_units_modal_visible {
-        modals::pressure_units_modal(app, frame, main_area);
-    }
-    if app.temperature_units_modal_visible {
-        modals::temperature_units_modal(app, frame, main_area);
+    if app.flow_units_modal_visible {
+        modals::flow_units_modal(app, frame, main_area);
     }
 }
 
@@ -327,18 +364,21 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                 KeyCode::Char('u') => {
                     if app.pressure_modal_visible {
                         app.pressure_units_modal_visible = true;
+                        app.pressure_modal_visible = false;
                     } else if app.temperature_modal_visible {
                         app.temperature_units_modal_visible = true;
+                        app.temperature_modal_visible = false;
+                    } else if app.flow_modal_visible {
+                        app.flow_units_modal_visible = true;
+                        app.flow_modal_visible = false;
                     }
                     app.input_modal_active = false;
-                    app.pressure_modal_visible = false;
-                    app.temperature_modal_visible = false;
                 }
                 _ =>{
                         let c = key.code.as_char();
                         if c.is_some() {
                             let c = c.unwrap();
-                            if c.is_numeric() || c == '.' {
+                            if c.is_numeric() || c == '.' || c == '-' {
                                 app.input_text.insert_char(c);
                             }
                         }
@@ -405,6 +445,48 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
             _ => {}
         }
         Ok(false)
+    } else if app.select_unit_modal_visible {
+        match event::read()? {
+            Event::Key(key) => match key.code {
+                KeyCode::Enter => {
+                    app.select_unit_modal_visible = false;
+                },
+                KeyCode::Esc => {
+                    app.select_unit_modal_visible = false;
+                },
+                KeyCode::Char('1') => {
+                    app.select_unit_modal_visible = false;
+                    app.pressure_units_modal_visible = true;
+                },
+                KeyCode::Char('2') => {
+                    app.select_unit_modal_visible = false;
+                    app.temperature_units_modal_visible = true;
+                },
+                KeyCode::Char('3') => {
+                    app.select_unit_modal_visible = false;
+                    app.density_units_modal_visible = true;
+                },
+                KeyCode::Char('4') => {
+                    app.select_unit_modal_visible = false;
+                    app.energy_units_modal_visible = true;
+                },
+                KeyCode::Char('5') => {
+                    app.select_unit_modal_visible = false;
+                    app.entropy_units_modal_visible = true;
+                },
+                KeyCode::Char('6') => {
+                    app.select_unit_modal_visible = false;
+                    app.speed_units_modal_visible = true;
+                },
+                KeyCode::Char('7') => {
+                    app.select_unit_modal_visible = false;
+                    app.flow_units_modal_visible = true;
+                },
+                _ =>{},
+            },
+            _ => {}
+        }
+        Ok(false)
     } else if app.pressure_units_modal_visible {
         match event::read()? {
             Event::Key(key) => match key.code {
@@ -461,12 +543,193 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
             _ => {}
         }
         Ok(false)
+    } else if app.density_units_modal_visible {
+        match event::read()? {
+            Event::Key(key) => match key.code {
+                KeyCode::Enter => {
+                    app.density_units_modal_visible = false;
+                },
+                KeyCode::Esc => {
+                    app.density_units_modal_visible = false;
+                },
+                KeyCode::Char('1') => {
+                    app.units.density = units::Density::mol_l;
+                    app.density_units_modal_visible = false;
+                },
+                KeyCode::Char('2') => {
+                    app.units.density = units::Density::kg_m3;
+                    app.density_units_modal_visible = false;
+                },
+                KeyCode::Char('3') => {
+                    app.units.density = units::Density::lbm_ft3;
+                    app.density_units_modal_visible = false;
+                },
+                _ =>{},
+            },
+            _ => {}
+        }
+        Ok(false)
+    } else if app.energy_units_modal_visible {
+        match event::read()? {
+            Event::Key(key) => match key.code {
+                KeyCode::Enter => {
+                    app.energy_units_modal_visible = false;
+                },
+                KeyCode::Esc => {
+                    app.energy_units_modal_visible = false;
+                },
+                KeyCode::Char('1') => {
+                    app.units.energy = units::Energy::J_mol;
+                    app.energy_units_modal_visible = false;
+                },
+                KeyCode::Char('2') => {
+                    app.units.energy = units::Energy::kJ_kg;
+                    app.energy_units_modal_visible = false;
+                },
+                KeyCode::Char('3') => {
+                    app.units.energy = units::Energy::BTU_lbm;
+                    app.energy_units_modal_visible = false;
+                },
+                _ =>{},
+            },
+            _ => {}
+        }
+        Ok(false)
+    } else if app.entropy_units_modal_visible {
+        match event::read()? {
+            Event::Key(key) => match key.code {
+                KeyCode::Enter => {
+                    app.entropy_units_modal_visible = false;
+                },
+                KeyCode::Esc => {
+                    app.entropy_units_modal_visible = false;
+                },
+                KeyCode::Char('1') => {
+                    app.units.entropy = units::Entropy::J_mol_K;
+                    app.entropy_units_modal_visible = false;
+                },
+                KeyCode::Char('2') => {
+                    app.units.entropy = units::Entropy::kJ_kg_K;
+                    app.entropy_units_modal_visible = false;
+                },
+                KeyCode::Char('3') => {
+                    app.units.entropy = units::Entropy::BTU_lbm_R;
+                    app.entropy_units_modal_visible = false;
+                },
+                _ =>{},
+            },
+            _ => {}
+        }
+        Ok(false)
+    } else if app.speed_units_modal_visible {
+        match event::read()? {
+            Event::Key(key) => match key.code {
+                KeyCode::Enter => {
+                    app.speed_units_modal_visible = false;
+                },
+                KeyCode::Esc => {
+                    app.speed_units_modal_visible = false;
+                },
+                KeyCode::Char('1') => {
+                    app.units.speed = units::Speed::m_s;
+                    app.speed_units_modal_visible = false;
+                },
+                KeyCode::Char('2') => {
+                    app.units.speed = units::Speed::ft_s;
+                    app.speed_units_modal_visible = false;
+                },
+                _ =>{},
+            },
+            _ => {}
+        }
+        Ok(false)
+    } else if app.flow_modal_visible {
+        match event::read()? {
+            Event::Key(key) => match key.code {
+                KeyCode::Enter => {
+                    app.flow_modal_visible = false;
+                },
+                KeyCode::Esc => {
+                    app.flow_modal_visible = false;
+                },
+                KeyCode::Char('1') => {
+                    app.units.speed = units::Speed::m_s;
+                    app.flow_modal_visible = false;
+                },
+                KeyCode::Char('2') => {
+                    app.units.speed = units::Speed::ft_s;
+                    app.flow_modal_visible = false;
+                },
+                _ =>{},
+            },
+            _ => {}
+        }
+        Ok(false)
+    } else if app.flow_units_modal_visible {
+        match event::read()? {
+            Event::Key(key) => match key.code {
+                KeyCode::Enter => {
+                    app.flow_units_modal_visible = false;
+                },
+                KeyCode::Esc => {
+                    app.flow_units_modal_visible = false;
+                },
+                KeyCode::Char('1') => {
+                    app.units.flow = units::Flow::kg_s;
+                    app.flow_units_modal_visible = false;
+                },
+                KeyCode::Char('2') => {
+                    app.units.flow = units::Flow::kg_m;
+                    app.flow_units_modal_visible = false;
+                },
+                KeyCode::Char('3') => {
+                    app.units.flow = units::Flow::kg_m;
+                    app.flow_units_modal_visible = false;
+                },
+                KeyCode::Char('4') => {
+                    app.units.flow = units::Flow::lbm_s;
+                    app.flow_units_modal_visible = false;
+                },
+                KeyCode::Char('5') => {
+                    app.units.flow = units::Flow::lbm_m;
+                    app.flow_units_modal_visible = false;
+                },
+                KeyCode::Char('6') => {
+                    app.units.flow = units::Flow::lbm_h;
+                    app.speed_units_modal_visible = false;
+                },
+                KeyCode::Char('7') => {
+                    app.units.flow = units::Flow::Nm3_h;
+                    app.flow_units_modal_visible = false;
+                },
+                KeyCode::Char('8') => {
+                    if app.stp_60_F {
+                        app.units.flow = units::Flow::scfm_60;
+                    } else {
+                        app.units.flow = units::Flow::scfm_70
+                    }
+                    app.flow_units_modal_visible = false;
+                },
+                KeyCode::Char('9') => {
+                    if app.stp_60_F {
+                        app.units.flow = units::Flow::scfh_60;
+                    } else {
+                        app.units.flow = units::Flow::scfh_70
+                    }
+                    app.flow_units_modal_visible = false;
+                },
+                _ =>{},
+            },
+            _ => {}
+        }
+        Ok(false)
     } else {
         match event::read()? {
             Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
                 KeyCode::Char('q') => return Ok(true),
                 KeyCode::Char('p') => app.pressure_modal_visible = !app.pressure_modal_visible,
                 KeyCode::Char('t') => app.temperature_modal_visible = !app.temperature_modal_visible,
+                KeyCode::Char('u') => app.select_unit_modal_visible = !app.select_unit_modal_visible,
                 KeyCode::Char('i') => set_inlet_conditions(app),
                 KeyCode::Char('o') => set_outlet_conditions(app),
                 KeyCode::Char('m') => {
@@ -783,8 +1046,8 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                 ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
                 ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::White).bg(Color::Black),
                 ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Black).bg(Color::DarkGray),
-                ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::White).bg(Color::Black),
-                ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Black).bg(Color::DarkGray),
+                // ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::White).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::White).bg(Color::Black),
             ];
                 return items
             },
@@ -856,8 +1119,8 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                 ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
                 ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::Green).bg(Color::Black),
                 ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Black).bg(Color::DarkGray),
-                ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Green).bg(Color::Black),
-                ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Black).bg(Color::DarkGray),
+                // ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Green).bg(Color::Black),
             ];
                 return items
             },
@@ -929,8 +1192,8 @@ fn get_gas_properties(app: &'_ App, state: GasState) -> Vec<ListItem<'_>> {
                 ListItem::new(format!("{:<18} {:.4} {}", "Cp/Cv (k):", k, "[]")).fg(Color::Black).bg(Color::DarkGray),
                 ListItem::new(format!("{:<18} {:.4} {}", "Z:", z, "[]")).fg(Color::Green).bg(Color::Black),
                 ListItem::new(format!("{:<18} {:.4} {}", "Speed of Sound:", w, speed_str)).fg(Color::Black).bg(Color::DarkGray),
-                ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Green).bg(Color::Black),
-                ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Black).bg(Color::DarkGray),
+                // ListItem::new(format!("{:<18} {:.4} {}", "Gibbs Energy:", g, energy_str)).fg(Color::Green).bg(Color::Black),
+                ListItem::new(format!("{:<18} {:.4} {}", "JT Coeff:", jt, jt_str)).fg(Color::Green).bg(Color::Black),
             ];
                 return items
             }

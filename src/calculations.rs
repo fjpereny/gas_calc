@@ -117,18 +117,6 @@ pub fn isentropic_eff(app: &mut App, hs: f64) -> f64 {
     }
 }
 
-pub fn compression_polytropic_exp(app: &mut App) -> f64 {
-    let pr = pressure_ratio(app);
-    let dr = density_ratio(app);
-    pr.ln() / dr.ln()
-}
-
-pub fn polytropic_eff(app: &mut App) -> f64 {
-    let n = compression_polytropic_exp(app);
-    let k = ave_cp_cv(app);
-    n / (n-1.0) * (k-1.0) / k
-}
-
 pub fn work(app: &mut App) -> f64 {
     let hd = enthalpy_change(app);
     hd * app.flow_val
@@ -215,7 +203,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
 
     let left_items = vec![   
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
+            format!("{:<18} {:.4} {:>}", 
                 "Press Ratio:", pressure_ratio, "[]",
             )
         )
@@ -223,7 +211,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
+            format!("{:<18} {:.4} {:>}", 
                 "Temp Ratio:", temperature_ratio, "[]",
             )
         )
@@ -231,7 +219,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
+            format!("{:<18} {:.4} {:>}", 
                 "Temp Change:", temperature_change(app), app.units.temp.print_unit(),
             )
         )
@@ -239,7 +227,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
+            format!("{:<18} {:.4} {:>}", 
                 "Enthalpy Change:", hd, app.units.energy.print_unit(),
             )
         )
@@ -247,7 +235,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
         .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
+            format!("{:<18} {:.4} {:>}", 
                 "Entropy Change:", entropy_change(app), app.units.entropy.print_unit(),
             )
         )
@@ -255,7 +243,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.3} {:>}",  
+            format!("{:<18} {:.4} {:>}",  
                 "Ave Cp/Cv:", ave_cp_cv(app), "[]",
             )
         )
@@ -265,15 +253,15 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
 
     let center_items = vec![   
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
-                "Temperature Ts:", ts, app.units.temp.print_unit(),
+            format!("{:<18} {:.4} {:>}", 
+                "Temperature Ts:", get_temperature(ts, app.units.temp), app.units.temp.print_unit(),
             )
         )
             .fg(Color::LightCyan)
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
+            format!("{:<18} {:.4} {:>}", 
                 "Enthalpy Hs:", hs, app.units.energy.print_unit(),
             )
         )
@@ -281,7 +269,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
+            format!("{:<18} {:.4} {:>}", 
                 "Efficiency:", isentropic_efficiency, "[]",
             )
         )
@@ -289,46 +277,78 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
             .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
+            format!("{:<18} {:.4} {:>}", 
                 "Enthalpy Change:", hds, app.units.energy.print_unit(),
             )
         )
         .fg(Color::LightCyan)
         .bg(Color::Black),
+
+        ListItem::new(
+            format!("{:<18} {:.4} {:>}", 
+                "Flow Rate:", app.flow_val, app.units.flow.print_unit(),
+            )
+        )
+            .fg(Color::Red)
+            .bg(Color::Black),
     ];
 
     let right_items = vec![   
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
-                "Temperature Ts:", ts, app.units.temp.print_unit(),
+            format!("{:<18} {:.4} {:>}", 
+                "Input Speed:", "TBD", "RPM",
             )
         )
-            .fg(Color::LightCyan)
-            .bg(Color::Black),
-
-        ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
-                "Enthalpy Hs:", hs, app.units.energy.print_unit(),
-            )
-        )
-            .fg(Color::LightCyan)
+            .fg(Color::Red)
             .bg(Color::Black),
 
             ListItem::new(
-                format!("{:<18} {:.3} {:>}", 
-                "Enthalpy Change:", hds, app.units.energy.print_unit(),
+                format!("{:<18} {:.4} {:>}", 
+                "Q/N:", "TBD", "[]",
             )
         )
-        .fg(Color::LightCyan)
+        .fg(Color::Red)
         .bg(Color::Black),
 
         ListItem::new(
-            format!("{:<18} {:.3} {:>}", 
-                "Efficiency:", isentropic_efficiency, "[]",
+            format!("{:<18} {:.4} {:>}", 
+                "Gear Ratio:", "TBD", "[]",
             )
         )
-            .fg(efficiency_color)
-            .bg(Color::Black),
+        .fg(Color::Red)
+        .bg(Color::Black),
+
+        ListItem::new(
+            format!("{:<18} {:.4} {:>}", 
+                "Wheel Speed:", "TBD", "RPM",
+            )
+        )
+        .fg(Color::Red)
+        .bg(Color::Black),
+
+        ListItem::new(
+            format!("{:<18} {:.4} {:>}", 
+                "Wheel Diameter:", "TBD", "TBD",
+            )
+        )
+        .fg(Color::Red)
+        .bg(Color::Black),
+
+        ListItem::new(
+            format!("{:<18} {:.4} {:>}", 
+                "Tip Speed:", "TBD", app.units.speed.print_unit(),
+            )
+        )
+        .fg(Color::Red)
+        .bg(Color::Black),
+
+        ListItem::new(
+            format!("{:<18} {:.4} {:>}", 
+                "Head:", "TBD", app.units.energy.print_unit(),
+            )
+        )
+        .fg(Color::Red)
+        .bg(Color::Black),
     ];
     
     [left_items, center_items, right_items]
