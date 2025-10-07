@@ -326,7 +326,7 @@ pub fn input_speed_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
     frame.render_widget(modal_content, modal_area);
 }
 
-pub fn gear_ratio(app: &mut App, frame: &mut Frame, main_area: Rect) {
+pub fn gear_ratio_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
     let modal_width_percent = 60;
     let modal_height_percent = 20;
     let modal_area = popup_area(main_area, modal_width_percent, modal_height_percent);
@@ -340,6 +340,26 @@ pub fn gear_ratio(app: &mut App, frame: &mut Frame, main_area: Rect) {
     .style(Style::new().fg(Color::White).bg(Color::Blue));
 
     let modal_content = Paragraph::new(format!("Enter Wheel Gear Ratio\n{}", app.input_text.lines()[0]))
+    .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
+
+    frame.render_widget(modal_block, modal_area);
+    frame.render_widget(modal_content, modal_area);
+}
+
+pub fn wheel_diameter_modal(app: &mut App, frame: &mut Frame, main_area: Rect) {
+    let modal_width_percent = 60;
+    let modal_height_percent = 20;
+    let modal_area = popup_area(main_area, modal_width_percent, modal_height_percent);
+
+    // Clear the background behind the modal
+    frame.render_widget(Clear, modal_area);
+
+    let modal_block = Block::new()
+    .title("Wheel Diameter")
+    .borders(Borders::ALL)
+    .style(Style::new().fg(Color::White).bg(Color::Blue));
+
+    let modal_content = Paragraph::new(format!("Enter Wheel Diameter ({})\n{}", app.units.length.print_unit(), app.input_text.lines()[0]))
     .block(Block::new().padding(ratatui::widgets::Padding::uniform(1)));
 
     frame.render_widget(modal_block, modal_area);

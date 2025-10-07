@@ -3,6 +3,8 @@ mod gas;
 mod modals;
 mod units;
 
+use std::os::linux::raw::stat;
+
 use aga8::detail::Detail;
 use aga8::gerg2008::Gerg2008;
 use aga8::composition::Composition;
@@ -56,6 +58,7 @@ pub struct App {
     pub flow_units_modal_visible: bool,
     pub input_speed_modal_visible: bool,
     pub gear_ratio_modal_visible: bool,
+    pub wheel_diameter_modal_visible: bool,
     pub aga8_cur_state: Detail,
     pub gerg_cur_state: Gerg2008,
     pub aga8_inlet_state: Detail,
@@ -94,6 +97,7 @@ impl Default for App {
             flow_units_modal_visible: false,
             input_speed_modal_visible: false,
             gear_ratio_modal_visible: false,
+            wheel_diameter_modal_visible: false,
             aga8_cur_state: Detail::new(),
             gerg_cur_state: Gerg2008::new(), 
             aga8_inlet_state: Detail::new(),
@@ -264,43 +268,43 @@ fn draw(frame: &mut Frame, app: &mut App) {
         } else {
             title_text = "Isobaric";
         }
-        let [left_items, center_items, right_items] = run_calculations(app);
-        let items_list = List::new(left_items)
+        let [state_change, isentropic_calcs, comp_calcs] = run_calculations(app);
+        let items_list = List::new(state_change)
         .block(Block::bordered()
         .title(format!("State Change ({})", title_text))
         .style(Color::LightCyan)
-    );
-    frame.render_widget(items_list, left_calc_area);
-    let items_list = List::new(center_items)
-    .block(Block::bordered()
-    .title(format!("Isentropic Calculations"))
-    .style(Color::LightCyan)
-);
-frame.render_widget(items_list, center_calc_area);
-let items_list = List::new(right_items)
-.block(Block::bordered()
-.title(format!("Dimensionless Data"))
-.style(Color::LightCyan)
-);
-frame.render_widget(items_list, right_calc_area);
-} else {
-        let [_, _, right_items] = run_calculations(app);
+        );
+        frame.render_widget(items_list, center_calc_area);
+        let items_list = List::new(isentropic_calcs)
+        .block(Block::bordered()
+        .title(format!("Isentropic Calculations"))
+        .style(Color::LightCyan)
+        );
+        frame.render_widget(items_list, right_calc_area);
+        let items_list = List::new(comp_calcs)
+        .block(Block::bordered()
+        .title(format!("Dimensionless Data"))
+        .style(Color::LightYellow)
+        );
+        frame.render_widget(items_list, left_calc_area);
+    } else {
+        let [_, _, comp_calcs] = run_calculations(app);
         let items_list = Block::bordered()
             .set_style(Style::default().fg(Color::Red))
             .title(format!("State Change")
         );
-        frame.render_widget(items_list, left_calc_area);
+        frame.render_widget(items_list, center_calc_area);
         let items_list = Block::bordered()
             .set_style(Style::default().fg(Color::Red))
             .title(format!("Isentropic Calculations")
         );
-        frame.render_widget(items_list, center_calc_area);
-        let items_list = List::new(right_items)
+        frame.render_widget(items_list, right_calc_area);
+        let items_list = List::new(comp_calcs)
             .block(Block::bordered()
             .title(format!("Dimensionless Data"))
-            .style(Color::LightCyan)
+            .style(Color::LightYellow).fg(Color::Yellow)
         );
-        frame.render_widget(items_list, right_calc_area)
+        frame.render_widget(items_list, left_calc_area)
     }
 
     if app.select_unit_modal_visible {
@@ -346,7 +350,10 @@ frame.render_widget(items_list, right_calc_area);
         modals::input_speed_modal(app, frame, main_area);
     }
     if app.gear_ratio_modal_visible {
-        modals::gear_ratio(app, frame, main_area);
+        modals::gear_ratio_modal(app, frame, main_area);
+    }
+    if app.wheel_diameter_modal_visible {
+        modals::wheel_diameter_modal(app, frame, main_area);
     }
 }
 
@@ -369,6 +376,8 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                         app.input_speed = val;
                     } else if app.gear_ratio_modal_visible {
                         app.gear_ratio = val;
+                    } else if app.wheel_diameter_modal_visible {
+                        app.wheel_diameter = val;
                     }
                 }
                 app.input_modal_active = false;
@@ -377,6 +386,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                 app.flow_modal_visible = false;
                 app.input_speed_modal_visible = false;
                 app.gear_ratio_modal_visible = false;
+                app.wheel_diameter_modal_visible = false;
                 app.input_text = TextArea::default();
             },
             KeyCode::Esc => {
@@ -386,6 +396,7 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                 app.flow_modal_visible = false;
                 app.input_speed_modal_visible = false;
                 app.gear_ratio_modal_visible = false;
+                app.wheel_diameter_modal_visible = false;
                 app.input_text = TextArea::default();
             },
             KeyCode::Backspace => {
@@ -754,6 +765,10 @@ fn handle_events(app: &mut App) -> std::io::Result<bool> {
                 }
                 KeyCode::Char('r') => {
                     app.gear_ratio_modal_visible = true;
+                    app.input_modal_active = true;
+                }
+                KeyCode::Char('w') => {
+                    app.wheel_diameter_modal_visible = true;
                     app.input_modal_active = true;
                 }
                 _ => {}

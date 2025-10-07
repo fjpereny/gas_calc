@@ -200,6 +200,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
         app.stp_60_F, 
         app.use_gerg2008
     );
+    let tip_speed_val = tip_speed(app);
 
     let efficiency_color;
         if isentropic_efficiency > 1.0 || isentropic_efficiency < 0.0 {
@@ -296,7 +297,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
                 "Flow Rate:", flow, app.units.flow.print_unit(),
             )
         )
-            .fg(Color::Red)
+            .fg(Color::LightYellow)
             .bg(Color::Black),
     ];
 
@@ -306,7 +307,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
                 "Input Speed:", app.input_speed, "RPM",
             )
         )
-            .fg(Color::Red)
+            .fg(Color::LightYellow)
             .bg(Color::Black),
 
             ListItem::new(
@@ -317,7 +318,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
                 "RPM"
             )
         )
-        .fg(Color::Red)
+        .fg(Color::LightYellow)
         .bg(Color::Black),
 
         ListItem::new(
@@ -325,7 +326,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
                 "Gear Ratio:", app.gear_ratio, "[]",
             )
         )
-        .fg(Color::Red)
+        .fg(Color::LightYellow)
         .bg(Color::Black),
 
         ListItem::new(
@@ -333,23 +334,23 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
                 "Wheel Speed:", app.input_speed * app.gear_ratio, "RPM",
             )
         )
-        .fg(Color::Red)
+        .fg(Color::LightYellow)
         .bg(Color::Black),
 
         ListItem::new(
             format!("{:<18} {:.4} {:>}", 
-                "Wheel Diameter:", "TBD", "TBD",
+                "Wheel Diameter:", app.wheel_diameter, app.units.length.print_unit(),
             )
         )
-        .fg(Color::Red)
+        .fg(Color::LightYellow)
         .bg(Color::Black),
 
         ListItem::new(
             format!("{:<18} {:.4} {:>}", 
-                "Tip Speed:", "TBD", app.units.speed.print_unit(),
+                "Tip Speed:", tip_speed_val, app.units.speed.print_unit(),
             )
         )
-        .fg(Color::Red)
+        .fg(Color::LightYellow)
         .bg(Color::Black),
 
         ListItem::new(
@@ -357,7 +358,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
                 "Head:", "TBD", app.units.energy.print_unit(),
             )
         )
-        .fg(Color::Red)
+        .fg(Color::LightYellow)
         .bg(Color::Black),
     ];
     

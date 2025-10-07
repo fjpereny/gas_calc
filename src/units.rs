@@ -10,6 +10,7 @@ pub struct Units {
     pub speed: Speed,
     pub jt_coeff: JT_Coeff,
     pub flow: Flow,
+    pub length: Length,
 }
 impl Default for Units {
     fn default() -> Self {
@@ -22,6 +23,7 @@ impl Default for Units {
             speed: Speed::ft_s,
             jt_coeff: JT_Coeff::R_PSI,
             flow: Flow::scfm,
+            length: Length::inch,
         }
     }
 }
@@ -169,6 +171,26 @@ impl PrintUnit for Flow {
            Flow::Nm3_h => "Nm^3/hr",
            Flow::scfm => "scfm",
            Flow::scfh => "scfh",
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum Length {
+    mm,
+    cm,
+    m,
+    inch,
+    ft,
+}
+impl PrintUnit for Length {
+    fn print_unit(&self) -> &'static str{
+        match self {
+           Length::mm => "mm",
+           Length::cm => "cm",
+           Length::m => "m",
+           Length::inch => "inch",
+           Length::ft => "ft",
         }
     }
 }
