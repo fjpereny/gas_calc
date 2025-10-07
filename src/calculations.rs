@@ -124,7 +124,7 @@ pub fn work(app: &mut App) -> f64 {
 
 pub fn tip_speed(app: &mut App) -> f64 {
     let pi = std::f64::consts::PI;
-    pi * app.wheel_diameter * app.rpm / 60.0
+    pi * app.wheel_diameter * app.input_speed / 60.0
 }
 
 pub fn isentropic_temp(app: &mut App) -> f64 {
@@ -303,15 +303,18 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
     let right_items = vec![   
         ListItem::new(
             format!("{:<18} {:.4} {:>}", 
-                "Input Speed:", "TBD", "RPM",
+                "Input Speed:", app.input_speed, "RPM",
             )
         )
             .fg(Color::Red)
             .bg(Color::Black),
 
             ListItem::new(
-                format!("{:<18} {:.4} {:>}", 
-                "Q/N:", "TBD", "[]",
+                format!("{:<18} {:.4} {:>}/{:>}", 
+                "Q/N:", 
+                app.flow_val / app.input_speed, 
+                app.units.flow.print_unit(), 
+                "RPM"
             )
         )
         .fg(Color::Red)
@@ -319,7 +322,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
 
         ListItem::new(
             format!("{:<18} {:.4} {:>}", 
-                "Gear Ratio:", "TBD", "[]",
+                "Gear Ratio:", app.gear_ratio, "[]",
             )
         )
         .fg(Color::Red)
@@ -327,7 +330,7 @@ pub fn run_calculations(app: &mut App) -> [Vec<ListItem<'_>>; 3] {
 
         ListItem::new(
             format!("{:<18} {:.4} {:>}", 
-                "Wheel Speed:", "TBD", "RPM",
+                "Wheel Speed:", app.input_speed * app.gear_ratio, "RPM",
             )
         )
         .fg(Color::Red)
